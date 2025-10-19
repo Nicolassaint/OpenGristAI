@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Header
 
-from app.api.models import ChatRequest, ChatResponse, HealthResponse, ToolCall, UIMessage
+from app.models import ChatRequest, ChatResponse, HealthResponse, ToolCall, UIMessage
 from app.core.agent import GristAgent
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,7 @@ async def chat(
                 tool_calls = _format_tool_calls(result["intermediate_steps"])
 
             # Build response
-            from app.config import settings
+            from app.models import settings
 
             response = ChatResponse(
                 response=result["output"],

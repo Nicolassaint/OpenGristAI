@@ -12,7 +12,7 @@ import colorlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
+from app.models import settings
 from app.api.routes import router
 from app.middleware.error_handler import register_exception_handlers
 

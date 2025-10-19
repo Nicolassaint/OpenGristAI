@@ -39,7 +39,7 @@ TEST_TABLE_NAME = "TestToolsTable"
 # Helper Functions
 # ============================================================================
 
-class TestResults:
+class ToolTestResults:
     """Classe pour tracker les résultats des tests."""
 
     def __init__(self):
@@ -92,7 +92,7 @@ class TestResults:
 async def test_all_tools():
     """Teste tous les tools disponibles."""
 
-    results = TestResults()
+    results = ToolTestResults()
 
     if not API_KEY:
         print("❌ ERREUR: GRIST_API_KEY non défini!")

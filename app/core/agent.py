@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from app.config import settings
+from app.models import settings
 from app.core.llm import get_llm
 from app.core.prompts import get_system_prompt
 from app.core.tools import get_all_tools

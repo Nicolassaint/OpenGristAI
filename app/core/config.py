@@ -152,7 +152,7 @@ settings = Settings()
 Global settings instance.
 
 Usage:
-    from app.config import settings
+    from app.models import settings
 
     print(settings.openai_model)
     print(settings.grist_base_url)
@@ -169,7 +169,7 @@ def get_settings() -> Settings:
 
     Useful for dependency injection in FastAPI:
         from fastapi import Depends
-        from app.config import get_settings, Settings
+        from app.models import get_settings, Settings
 
         @app.get("/")
         def read_root(settings: Settings = Depends(get_settings)):

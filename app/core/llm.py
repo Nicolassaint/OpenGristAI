@@ -11,7 +11,7 @@ from typing import Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
 
-from app.config import settings
+from app.models import settings
 
 logger = logging.getLogger(__name__)
 

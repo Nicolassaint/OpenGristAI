@@ -144,11 +144,11 @@ class GristService:
 
         # Basic validation
         if not table_id or not table_id.strip():
-            from app.middleware.exceptions import ValidationException
+            from app.models import ValidationException
             raise ValidationException("table_id", "Table ID cannot be empty")
 
         if not columns:
-            from app.middleware.exceptions import ValidationException
+            from app.models import ValidationException
             raise ValidationException("columns", "At least one column is required")
 
         try:
@@ -213,7 +213,7 @@ class GristService:
 
         # Validate inputs
         if not column_id or not column_id.strip():
-            from app.middleware.exceptions import ValidationException
+            from app.models import ValidationException
             raise ValidationException("column_id", "Column ID cannot be empty")
 
         try:
@@ -283,7 +283,7 @@ class GristService:
                 fields["widgetOptions"] = widget_options
 
             if not fields:
-                from app.middleware.exceptions import ValidationException
+                from app.models import ValidationException
                 raise ValidationException("updates", "At least one property must be updated")
 
             await self.client.update_column(table_id, column_id, fields)
@@ -489,7 +489,7 @@ class GristService:
 
         # Validate record counts match
         if len(record_ids) != len(records):
-            from app.middleware.exceptions import ValidationException
+            from app.models import ValidationException
 
             raise ValidationException(
                 "record_ids",

@@ -12,7 +12,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from httpx import HTTPStatusError
 
-from app.middleware.exceptions import (
+from app.models import (
     ChoiceValidationException,
     ColumnNotFoundException,
     ConfirmationRequiredException,
