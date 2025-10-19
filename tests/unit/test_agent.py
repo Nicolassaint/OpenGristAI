@@ -84,7 +84,9 @@ class TestGristAgent:
                 }
             ],
         )
-        final_response = AIMessage(content="The document has 3 tables: Students, Projects, and Grades.")
+        final_response = AIMessage(
+            content="The document has 3 tables: Students, Projects, and Grades."
+        )
 
         agent.llm_with_tools.ainvoke = AsyncMock(
             side_effect=[tool_call_response, final_response]
@@ -133,9 +135,7 @@ class TestGristAgent:
             {"role": "assistant", "content": "Hello John!"},
         ]
 
-        result = await agent.run(
-            "Do you remember my name?", chat_history=chat_history
-        )
+        result = await agent.run("Do you remember my name?", chat_history=chat_history)
 
         assert result["success"] is True
 

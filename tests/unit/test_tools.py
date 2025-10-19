@@ -61,9 +61,7 @@ class TestToolExecution:
         assert len(result) == 3
         assert result[0]["id"] == "Students"
 
-    async def test_get_table_columns_tool(
-        self, mock_grist_service, sample_columns
-    ):
+    async def test_get_table_columns_tool(self, mock_grist_service, sample_columns):
         """Test get_table_columns tool."""
         set_grist_service(mock_grist_service)
 
@@ -71,15 +69,11 @@ class TestToolExecution:
         assert len(result) == 5
         assert result[1]["id"] == "Name"
 
-    async def test_get_sample_records_tool(
-        self, mock_grist_service, sample_records
-    ):
+    async def test_get_sample_records_tool(self, mock_grist_service, sample_records):
         """Test get_sample_records tool."""
         set_grist_service(mock_grist_service)
 
-        result = await get_sample_records.ainvoke(
-            {"table_id": "Students", "limit": 5}
-        )
+        result = await get_sample_records.ainvoke({"table_id": "Students", "limit": 5})
         assert len(result) > 0
         assert len(result) <= 10  # Max limit enforced
 
@@ -170,9 +164,7 @@ class TestToolInputSchemas:
         """Test QueryDocumentInput validation."""
         from app.models import QueryDocumentInput
 
-        input_data = QueryDocumentInput(
-            query="SELECT * FROM Students", args=[18]
-        )
+        input_data = QueryDocumentInput(query="SELECT * FROM Students", args=[18])
         assert input_data.query == "SELECT * FROM Students"
         assert input_data.args == [18]
 

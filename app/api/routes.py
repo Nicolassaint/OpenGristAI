@@ -41,8 +41,7 @@ async def health_check() -> HealthResponse:
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
-    request: ChatRequest,
-    x_api_key: str = Header(..., description="Grist access token")
+    request: ChatRequest, x_api_key: str = Header(..., description="Grist access token")
 ) -> ChatResponse:
     """
     Main chat endpoint for the Grist AI Assistant.
@@ -306,9 +305,7 @@ async def confirm_operation(
 
     # Find and execute the tool
     tools = get_all_tools()
-    tool = next(
-        (t for t in tools if t.name == confirmation_request.tool_name), None
-    )
+    tool = next((t for t in tools if t.name == confirmation_request.tool_name), None)
 
     if tool is None:
         raise HTTPException(
@@ -316,9 +313,7 @@ async def confirm_operation(
             detail=f"Tool {confirmation_request.tool_name} not found",
         )
 
-    logger.info(
-        f"Executing confirmed operation: {confirmation_request.tool_name}"
-    )
+    logger.info(f"Executing confirmed operation: {confirmation_request.tool_name}")
 
     try:
         # Execute the tool
@@ -339,9 +334,7 @@ async def confirm_operation(
         )
 
     except Exception as e:
-        logger.error(
-            f"Error executing confirmed operation: {str(e)}", exc_info=True
-        )
+        logger.error(f"Error executing confirmed operation: {str(e)}", exc_info=True)
         # Cleanup even on error
         await grist_service.close()
 

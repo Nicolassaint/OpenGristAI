@@ -90,9 +90,7 @@ class TestChatEndpoint:
         assert data["tool_calls"][0]["tool_name"] == "get_tables"
 
     @patch("app.api.routes.GristAgent")
-    def test_chat_with_sql_query(
-        self, mock_agent_class, api_client, sample_headers
-    ):
+    def test_chat_with_sql_query(self, mock_agent_class, api_client, sample_headers):
         """Test chat request that executes SQL query."""
         # Request with query
         request_data = {
@@ -130,9 +128,7 @@ class TestChatEndpoint:
         mock_agent.cleanup = AsyncMock()
         mock_agent_class.return_value = mock_agent
 
-        response = api_client.post(
-            "/chat", json=request_data, headers=sample_headers
-        )
+        response = api_client.post("/chat", json=request_data, headers=sample_headers)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -145,9 +141,7 @@ class TestChatEndpoint:
             "documentId": "test-doc",
         }
 
-        response = api_client.post(
-            "/chat", json=request_data, headers=sample_headers
-        )
+        response = api_client.post("/chat", json=request_data, headers=sample_headers)
 
         # Should return 400 for no user message
         assert response.status_code == status.HTTP_400_BAD_REQUEST

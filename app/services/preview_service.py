@@ -42,7 +42,9 @@ class PreviewService:
 
         # Fetch the records that will be deleted (limit to 10 for preview)
         preview_ids = record_ids[:10]
-        query = f"SELECT * FROM {table_id} WHERE id IN ({','.join('?' * len(preview_ids))})"
+        query = (
+            f"SELECT * FROM {table_id} WHERE id IN ({','.join('?' * len(preview_ids))})"
+        )
 
         try:
             affected_items = await self.grist_service.query_document(query, preview_ids)
@@ -87,7 +89,11 @@ class PreviewService:
         try:
             columns = await self.grist_service.get_table_columns(table_id)
             column = next((c for c in columns if c["id"] == column_id), None)
-            column_label = column.get("fields", {}).get("label", column_id) if column else column_id
+            column_label = (
+                column.get("fields", {}).get("label", column_id)
+                if column
+                else column_id
+            )
         except Exception:
             column_label = column_id
 
@@ -144,7 +150,9 @@ class PreviewService:
 
         # Fetch current values (limit to 10)
         preview_ids = record_ids[:10]
-        query = f"SELECT * FROM {table_id} WHERE id IN ({','.join('?' * len(preview_ids))})"
+        query = (
+            f"SELECT * FROM {table_id} WHERE id IN ({','.join('?' * len(preview_ids))})"
+        )
 
         try:
             current_items = await self.grist_service.query_document(query, preview_ids)

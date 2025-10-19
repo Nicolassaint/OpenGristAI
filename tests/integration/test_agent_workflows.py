@@ -70,7 +70,11 @@ class TestAgentWorkflows:
         get_columns_call = AIMessage(
             content="",
             tool_calls=[
-                {"name": "get_table_columns", "args": {"table_id": "Students"}, "id": "call_2"}
+                {
+                    "name": "get_table_columns",
+                    "args": {"table_id": "Students"},
+                    "id": "call_2",
+                }
             ],
         )
         query_call = AIMessage(
@@ -102,7 +106,11 @@ class TestAgentWorkflows:
         get_columns_call = AIMessage(
             content="",
             tool_calls=[
-                {"name": "get_table_columns", "args": {"table_id": "Students"}, "id": "call_1"}
+                {
+                    "name": "get_table_columns",
+                    "args": {"table_id": "Students"},
+                    "id": "call_1",
+                }
             ],
         )
         add_record_call = AIMessage(
@@ -211,9 +219,7 @@ class TestAgentWorkflows:
             side_effect=[query_call, update_call, verify_call, final_response]
         )
 
-        result = await agent_with_mocks.run(
-            "Update John Doe's grade to A+ and verify"
-        )
+        result = await agent_with_mocks.run("Update John Doe's grade to A+ and verify")
 
         assert result["success"] is True
         assert len(result["intermediate_steps"]) == 3
@@ -229,9 +235,7 @@ class TestAgentWorkflows:
 
         final_response = AIMessage(content="Yes, your name is Alice.")
 
-        agent_with_mocks.llm_with_tools.ainvoke = AsyncMock(
-            return_value=final_response
-        )
+        agent_with_mocks.llm_with_tools.ainvoke = AsyncMock(return_value=final_response)
 
         result = await agent_with_mocks.run(
             "What is my name?", chat_history=chat_history
@@ -284,7 +288,8 @@ class TestErrorRecoveryWorkflows:
                 ],
             )
             recovery_call = AIMessage(
-                content="", tool_calls=[{"name": "get_tables", "args": {}, "id": "call_2"}]
+                content="",
+                tool_calls=[{"name": "get_tables", "args": {}, "id": "call_2"}],
             )
             final_response = AIMessage(
                 content="That table doesn't exist. Available tables are Students and Projects."

@@ -32,8 +32,12 @@ class OperationPreview(BaseModel):
     """Preview of what will be affected by an operation."""
 
     operation_type: OperationType
-    description: str = Field(..., description="Human-readable description of the operation")
-    affected_count: int = Field(..., description="Number of items that will be affected")
+    description: str = Field(
+        ..., description="Human-readable description of the operation"
+    )
+    affected_count: int = Field(
+        ..., description="Number of items that will be affected"
+    )
     affected_items: Optional[List[Dict[str, Any]]] = Field(
         default=None, description="Preview of items that will be affected (max 10)"
     )
@@ -66,12 +70,15 @@ class OperationPreview(BaseModel):
 class ConfirmationRequest(BaseModel):
     """Request for user confirmation of a destructive operation."""
 
-    confirmation_id: str = Field(..., description="Unique ID for this confirmation request")
+    confirmation_id: str = Field(
+        ..., description="Unique ID for this confirmation request"
+    )
     preview: OperationPreview
     tool_name: str = Field(..., description="Name of the tool to execute")
     tool_args: Dict[str, Any] = Field(..., description="Arguments for the tool")
     expires_in_seconds: int = Field(
-        default=300, description="How long this confirmation is valid (default: 5 minutes)"
+        default=300,
+        description="How long this confirmation is valid (default: 5 minutes)",
     )
 
     class Config:

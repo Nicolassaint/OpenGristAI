@@ -31,7 +31,9 @@ class ColumnFields(BaseModel):
 
     type: str = Field(..., description="Column type (Text, Numeric, Int, Bool, etc.)")
     label: Optional[str] = Field(default=None, description="Column display label")
-    formula: Optional[str] = Field(default=None, description="Formula for computed columns")
+    formula: Optional[str] = Field(
+        default=None, description="Formula for computed columns"
+    )
     widgetOptions: Optional[Dict[str, Any]] = Field(
         default=None, description="Widget configuration options"
     )

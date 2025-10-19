@@ -37,9 +37,7 @@ class TestAPIModels:
 
     def test_ui_message_with_content(self):
         """Test UIMessage with legacy content field."""
-        message = UIMessage(
-            id="msg-2", role="assistant", content="Hello back"
-        )
+        message = UIMessage(id="msg-2", role="assistant", content="Hello back")
         assert message.content == "Hello back"
         assert message.parts is None
 

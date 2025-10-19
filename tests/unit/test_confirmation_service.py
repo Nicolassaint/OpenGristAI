@@ -236,10 +236,7 @@ class TestRequiresConfirmation:
         """Test that bulk updates (>5 records) require confirmation."""
         # Small update - no confirmation
         assert (
-            requires_confirmation(
-                "update_records", {"record_ids": [1, 2, 3]}
-            )
-            is False
+            requires_confirmation("update_records", {"record_ids": [1, 2, 3]}) is False
         )
 
         # Large update - requires confirmation
@@ -254,19 +251,12 @@ class TestRequiresConfirmation:
         """Test that column type changes require confirmation."""
         # No type change - no confirmation
         assert (
-            requires_confirmation(
-                "update_table_column", {"label": "New Label"}
-            )
+            requires_confirmation("update_table_column", {"label": "New Label"})
             is False
         )
 
         # Type change - requires confirmation
-        assert (
-            requires_confirmation(
-                "update_table_column", {"col_type": "Int"}
-            )
-            is True
-        )
+        assert requires_confirmation("update_table_column", {"col_type": "Int"}) is True
 
     def test_safe_operations_no_confirmation(self):
         """Test that safe operations don't require confirmation."""

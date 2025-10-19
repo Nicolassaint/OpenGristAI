@@ -54,9 +54,7 @@ class ColumnNotFoundException(GristAPIException):
         message = f"Column '{column_id}' not found in table '{table_id}'."
         if available_columns:
             message += f" Available columns: {', '.join(available_columns)}"
-        super().__init__(
-            message, {"table_id": table_id, "column_id": column_id}
-        )
+        super().__init__(message, {"table_id": table_id, "column_id": column_id})
         self.table_id = table_id
         self.column_id = column_id
 
@@ -124,9 +122,7 @@ class RecordNotFoundException(GristAPIException):
     """Raised when a record doesn't exist."""
 
     def __init__(self, table_id: str, record_ids: list):
-        message = (
-            f"Records not found in table '{table_id}': {', '.join(map(str, record_ids))}"
-        )
+        message = f"Records not found in table '{table_id}': {', '.join(map(str, record_ids))}"
         super().__init__(message, {"table_id": table_id, "record_ids": record_ids})
         self.table_id = table_id
         self.record_ids = record_ids

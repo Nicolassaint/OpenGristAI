@@ -56,10 +56,14 @@ class GristAPIClient:
         if use_api_key:
             # API Key: use Authorization Bearer header
             headers["Authorization"] = f"Bearer {access_token}"
-            logger.info(f"GristAPIClient initialized with API Key for document: {document_id}")
+            logger.info(
+                f"GristAPIClient initialized with API Key for document: {document_id}"
+            )
         else:
             # Widget JWT: will use query parameter ?auth=TOKEN
-            logger.info(f"GristAPIClient initialized with widget token for document: {document_id}")
+            logger.info(
+                f"GristAPIClient initialized with widget token for document: {document_id}"
+            )
 
         self.client = httpx.AsyncClient(
             headers=headers,
@@ -94,9 +98,7 @@ class GristAPIClient:
 
         return url
 
-    async def _request(
-        self, method: str, path: str, **kwargs
-    ) -> Dict[str, Any]:
+    async def _request(self, method: str, path: str, **kwargs) -> Dict[str, Any]:
         """
         Make HTTP request to Grist API.
 
@@ -155,7 +157,6 @@ class GristAPIClient:
         data = await self._request("GET", path)
         return data.get("columns", [])
 
-
     # ========================================================================
     # Table Management via REST API
     # ========================================================================
@@ -176,14 +177,7 @@ class GristAPIClient:
         API: POST /api/docs/{docId}/tables
         """
         path = f"/api/docs/{self.document_id}/tables"
-        payload = {
-            "tables": [
-                {
-                    "id": table_id,
-                    "columns": columns
-                }
-            ]
-        }
+        payload = {"tables": [{"id": table_id, "columns": columns}]}
 
         logger.info(f"Creating table '{table_id}' with {len(columns)} column(s)")
         return await self._request("POST", path, json=payload)
@@ -209,14 +203,7 @@ class GristAPIClient:
         API: POST /api/docs/{docId}/tables/{tableId}/columns
         """
         path = f"/api/docs/{self.document_id}/tables/{table_id}/columns"
-        payload = {
-            "columns": [
-                {
-                    "id": column_id,
-                    "fields": fields
-                }
-            ]
-        }
+        payload = {"columns": [{"id": column_id, "fields": fields}]}
 
         logger.info(f"Adding column '{column_id}' to table '{table_id}'")
         return await self._request("POST", path, json=payload)
@@ -238,14 +225,7 @@ class GristAPIClient:
         API: PATCH /api/docs/{docId}/tables/{tableId}/columns
         """
         path = f"/api/docs/{self.document_id}/tables/{table_id}/columns"
-        payload = {
-            "columns": [
-                {
-                    "id": column_id,
-                    "fields": fields
-                }
-            ]
-        }
+        payload = {"columns": [{"id": column_id, "fields": fields}]}
 
         logger.info(f"Updating column '{column_id}' in table '{table_id}'")
         return await self._request("PATCH", path, json=payload)
@@ -273,7 +253,10 @@ class GristAPIClient:
     # ========================================================================
 
     async def get_records(
-        self, table_id: str, filters: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
+        self,
+        table_id: str,
+        filters: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """
         Get records from a table.

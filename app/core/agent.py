@@ -193,11 +193,15 @@ class GristAgent:
                 if hasattr(response, "content") and response.content:
                     logger.debug(f"LLM Response Content: {response.content[:500]}...")
 
-                logger.debug(f"LLM wants to call tools: {hasattr(response, 'tool_calls') and bool(response.tool_calls)}")
+                logger.debug(
+                    f"LLM wants to call tools: {hasattr(response, 'tool_calls') and bool(response.tool_calls)}"
+                )
 
                 # Check if LLM wants to call tools
                 if hasattr(response, "tool_calls") and response.tool_calls:
-                    logger.debug(f"LLM requested {len(response.tool_calls)} tool call(s)")
+                    logger.debug(
+                        f"LLM requested {len(response.tool_calls)} tool call(s)"
+                    )
 
                     # Add AI message to conversation
                     messages.append(response)
@@ -208,7 +212,9 @@ class GristAgent:
                         tool_args = tool_call["args"]
                         tool_id = tool_call.get("id", "unknown")
 
-                        logger.debug(f"\n--- Tool Call {idx + 1}/{len(response.tool_calls)} ---")
+                        logger.debug(
+                            f"\n--- Tool Call {idx + 1}/{len(response.tool_calls)} ---"
+                        )
                         logger.debug(f"Tool: {tool_name}")
                         logger.debug(f"Args: {tool_args}")
                         logger.debug(f"ID: {tool_id}")
@@ -266,7 +272,9 @@ class GristAgent:
                                 # Log result
                                 result_str = str(result)
                                 if len(result_str) > 500:
-                                    logger.debug(f"Tool result (truncated): {result_str[:500]}...")
+                                    logger.debug(
+                                        f"Tool result (truncated): {result_str[:500]}..."
+                                    )
                                 else:
                                     logger.debug(f"Tool result: {result_str}")
 
@@ -280,10 +288,14 @@ class GristAgent:
                                         tool_call_id=tool_id,
                                     )
                                 )
-                                logger.debug(f"✓ Tool {tool_name} executed successfully")
+                                logger.debug(
+                                    f"✓ Tool {tool_name} executed successfully"
+                                )
 
                             except Exception as e:
-                                error_msg = f"Error executing tool {tool_name}: {str(e)}"
+                                error_msg = (
+                                    f"Error executing tool {tool_name}: {str(e)}"
+                                )
                                 logger.error(error_msg, exc_info=True)
 
                                 # Add error message
@@ -294,7 +306,9 @@ class GristAgent:
                                     )
                                 )
 
-                                intermediate_steps.append((tool_call, f"Error: {str(e)}"))
+                                intermediate_steps.append(
+                                    (tool_call, f"Error: {str(e)}")
+                                )
                         else:
                             error_msg = f"Tool {tool_name} not found"
                             logger.error(error_msg)
@@ -312,7 +326,9 @@ class GristAgent:
                     # No tool calls - this is the final answer
                     logger.debug(f"\n{'='*80}")
                     logger.debug("FINAL ANSWER:")
-                    logger.debug(response.content if hasattr(response, 'content') else response)
+                    logger.debug(
+                        response.content if hasattr(response, "content") else response
+                    )
                     logger.debug(f"{'='*80}\n")
 
                     logger.info("Agent execution completed successfully")

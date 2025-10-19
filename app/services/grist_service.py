@@ -145,10 +145,12 @@ class GristService:
         # Basic validation
         if not table_id or not table_id.strip():
             from app.models import ValidationException
+
             raise ValidationException("table_id", "Table ID cannot be empty")
 
         if not columns:
             from app.models import ValidationException
+
             raise ValidationException("columns", "At least one column is required")
 
         try:
@@ -214,6 +216,7 @@ class GristService:
         # Validate inputs
         if not column_id or not column_id.strip():
             from app.models import ValidationException
+
             raise ValidationException("column_id", "Column ID cannot be empty")
 
         try:
@@ -284,7 +287,10 @@ class GristService:
 
             if not fields:
                 from app.models import ValidationException
-                raise ValidationException("updates", "At least one property must be updated")
+
+                raise ValidationException(
+                    "updates", "At least one property must be updated"
+                )
 
             await self.client.update_column(table_id, column_id, fields)
             logger.debug(f"Updated column '{column_id}' in table '{table_id}'")
@@ -295,7 +301,9 @@ class GristService:
             logger.error(f"Error updating column '{column_id}': {e}")
             raise
 
-    async def remove_table_column(self, table_id: str, column_id: str) -> Dict[str, Any]:
+    async def remove_table_column(
+        self, table_id: str, column_id: str
+    ) -> Dict[str, Any]:
         """
         Remove a column from a table via REST API.
 
@@ -366,7 +374,7 @@ class GristService:
 
         try:
             records = await self.client.get_records(table_id, limit=limit)
-            
+
             # Extract just the fields from each record (remove internal metadata)
             samples = []
             for record in records:
@@ -376,8 +384,10 @@ class GristService:
                 else:
                     # Fallback if structure is different
                     samples.append(record)
-            
-            logger.debug(f"Retrieved {len(samples)} sample records from table '{table_id}'")
+
+            logger.debug(
+                f"Retrieved {len(samples)} sample records from table '{table_id}'"
+            )
             return samples
 
         except Exception as e:
@@ -406,12 +416,14 @@ class GristService:
 
         try:
             results = await self.client.query_sql(query, args)
-            
+
             # Apply hard limit of 100 rows to prevent token overflow
             if len(results) > 100:
-                logger.warning(f"Query returned {len(results)} records, limiting to 100 to prevent token overflow")
+                logger.warning(
+                    f"Query returned {len(results)} records, limiting to 100 to prevent token overflow"
+                )
                 results = results[:100]
-            
+
             logger.debug(f"Query returned {len(results)} records")
             return results
         except Exception as e:

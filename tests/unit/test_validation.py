@@ -29,9 +29,7 @@ class TestValidationService:
         validator = ValidationService(mock_grist_service)
         return validator
 
-    async def test_validate_table_exists_valid(
-        self, validation_service, sample_tables
-    ):
+    async def test_validate_table_exists_valid(self, validation_service, sample_tables):
         """Test validation passes for existing table."""
         # Should not raise
         await validation_service.validate_table_exists("Students")

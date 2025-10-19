@@ -11,7 +11,7 @@ import sys
 from typing import Dict, Any
 
 # Ajouter le répertoire parent au path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.services.grist_service import GristService
 from app.core.tools import set_grist_service
@@ -39,6 +39,7 @@ TEST_TABLE_NAME = "TestToolsTable"
 # Helper Functions
 # ============================================================================
 
+
 class ToolTestResults:
     """Classe pour tracker les résultats des tests."""
 
@@ -58,11 +59,7 @@ class ToolTestResults:
             self.failed += 1
             status = "❌ FAIL"
 
-        self.results[tool_name] = {
-            "status": status,
-            "message": message,
-            "data": data
-        }
+        self.results[tool_name] = {"status": status, "message": message, "data": data}
 
         print(f"\n{status} - {tool_name}")
         if message:
@@ -88,6 +85,7 @@ class ToolTestResults:
 # ============================================================================
 # Test Functions
 # ============================================================================
+
 
 async def test_all_tools():
     """Teste tous les tools disponibles."""
@@ -128,9 +126,9 @@ async def test_all_tools():
                 "get_tables",
                 True,
                 f"Found {len(tables)} table(s)",
-                [t.get('id') for t in tables]
+                [t.get("id") for t in tables],
             )
-            existing_table = tables[0]['id'] if tables else None
+            existing_table = tables[0]["id"] if tables else None
         except Exception as e:
             results.add("get_tables", False, str(e))
             existing_table = None
@@ -145,7 +143,7 @@ async def test_all_tools():
                     "get_table_columns",
                     True,
                     f"Table '{existing_table}' has {len(columns)} column(s)",
-                    [c.get('id') for c in columns]
+                    [c.get("id") for c in columns],
                 )
             except Exception as e:
                 results.add("get_table_columns", False, str(e))
@@ -163,7 +161,7 @@ async def test_all_tools():
                 results.add(
                     "query_document",
                     True,
-                    f"Query returned {len(query_result)} record(s)"
+                    f"Query returned {len(query_result)} record(s)",
                 )
             except Exception as e:
                 results.add("query_document", False, str(e))
@@ -176,26 +174,14 @@ async def test_all_tools():
         test_table_created = False
         try:
             columns = [
-                {
-                    "id": "TestName",
-                    "fields": {
-                        "type": "Text",
-                        "label": "Name"
-                    }
-                },
-                {
-                    "id": "TestAge",
-                    "fields": {
-                        "type": "Int",
-                        "label": "Age"
-                    }
-                }
+                {"id": "TestName", "fields": {"type": "Text", "label": "Name"}},
+                {"id": "TestAge", "fields": {"type": "Int", "label": "Age"}},
             ]
             result = await service.add_table(TEST_TABLE_NAME, columns)
             results.add(
                 "add_table",
                 True,
-                f"Created table '{TEST_TABLE_NAME}' with {result.get('columns_count', 0)} columns"
+                f"Created table '{TEST_TABLE_NAME}' with {result.get('columns_count', 0)} columns",
             )
             test_table_created = True
         except Exception as e:
@@ -207,15 +193,12 @@ async def test_all_tools():
         if test_table_created:
             try:
                 result = await service.add_table_column(
-                    TEST_TABLE_NAME,
-                    "TestEmail",
-                    "Text",
-                    label="Email Address"
+                    TEST_TABLE_NAME, "TestEmail", "Text", label="Email Address"
                 )
                 results.add(
                     "add_table_column",
                     True,
-                    f"Added column 'TestEmail' to table '{TEST_TABLE_NAME}'"
+                    f"Added column 'TestEmail' to table '{TEST_TABLE_NAME}'",
                 )
             except Exception as e:
                 results.add("add_table_column", False, str(e))
@@ -229,16 +212,16 @@ async def test_all_tools():
             try:
                 records = [
                     {"TestName": "Alice", "TestAge": 30},
-                    {"TestName": "Bob", "TestAge": 25}
+                    {"TestName": "Bob", "TestAge": 25},
                 ]
                 result = await service.add_records(TEST_TABLE_NAME, records)
                 results.add(
                     "add_records",
                     True,
                     f"Added {result.get('count', 0)} record(s)",
-                    result.get('record_ids')
+                    result.get("record_ids"),
                 )
-                test_record_ids = result.get('record_ids', [])
+                test_record_ids = result.get("record_ids", [])
             except Exception as e:
                 results.add("add_records", False, str(e))
                 test_record_ids = []
@@ -253,14 +236,12 @@ async def test_all_tools():
             try:
                 updates = [{"TestAge": 31}]  # Update first record
                 result = await service.update_records(
-                    TEST_TABLE_NAME,
-                    [test_record_ids[0]],
-                    updates
+                    TEST_TABLE_NAME, [test_record_ids[0]], updates
                 )
                 results.add(
                     "update_records",
                     True,
-                    f"Updated {result.get('updated_count', 0)} record(s)"
+                    f"Updated {result.get('updated_count', 0)} record(s)",
                 )
             except Exception as e:
                 results.add("update_records", False, str(e))
@@ -274,22 +255,18 @@ async def test_all_tools():
         if test_table_created:
             try:
                 result = await service.update_table_column(
-                    TEST_TABLE_NAME,
-                    "TestEmail",
-                    label="Email (Updated)"
+                    TEST_TABLE_NAME, "TestEmail", label="Email (Updated)"
                 )
                 results.add(
-                    "update_table_column",
-                    True,
-                    "Updated column label successfully"
+                    "update_table_column", True, "Updated column label successfully"
                 )
 
                 # Re-fetch les colonnes pour obtenir le nouvel ID (Grist peut l'avoir changé)
                 columns = await service.get_table_columns(TEST_TABLE_NAME)
                 # Chercher la colonne qui contient "Email" dans son ID
                 for col in columns:
-                    col_id = col.get('id', '')
-                    if 'Email' in col_id and col_id != "TestEmail":
+                    col_id = col.get("id", "")
+                    if "Email" in col_id and col_id != "TestEmail":
                         updated_column_id = col_id
                         break
             except Exception as e:
@@ -304,13 +281,12 @@ async def test_all_tools():
             try:
                 # Supprimer seulement le premier record pour garder des données pour les autres tests
                 result = await service.remove_records(
-                    TEST_TABLE_NAME,
-                    [test_record_ids[0]]
+                    TEST_TABLE_NAME, [test_record_ids[0]]
                 )
                 results.add(
                     "remove_records",
                     True,
-                    f"Removed {result.get('deleted_count', 0)} record(s)"
+                    f"Removed {result.get('deleted_count', 0)} record(s)",
                 )
             except Exception as e:
                 results.add("remove_records", False, str(e))
@@ -324,13 +300,12 @@ async def test_all_tools():
             try:
                 # Utiliser l'ID mis à jour (Grist peut avoir changé l'ID après update)
                 result = await service.remove_table_column(
-                    TEST_TABLE_NAME,
-                    updated_column_id
+                    TEST_TABLE_NAME, updated_column_id
                 )
                 results.add(
                     "remove_table_column",
                     True,
-                    f"Removed column '{updated_column_id}' successfully"
+                    f"Removed column '{updated_column_id}' successfully",
                 )
             except Exception as e:
                 results.add("remove_table_column", False, str(e))
@@ -342,12 +317,13 @@ async def test_all_tools():
         # ====================================================================
         try:
             from app.core.tools import get_grist_access_rules_reference
+
             # Les tools LangChain doivent être invoqués avec .ainvoke({})
             result = await get_grist_access_rules_reference.ainvoke({})
             results.add(
                 "get_grist_access_rules_reference",
                 True,
-                f"Returned documentation ({len(result)} chars)"
+                f"Returned documentation ({len(result)} chars)",
             )
         except Exception as e:
             results.add("get_grist_access_rules_reference", False, str(e))
@@ -357,13 +333,14 @@ async def test_all_tools():
         # ====================================================================
         try:
             from app.core.tools import get_available_custom_widgets
+
             # Les tools LangChain doivent être invoqués avec .ainvoke({})
             result = await get_available_custom_widgets.ainvoke({})
             results.add(
                 "get_available_custom_widgets",
                 True,
                 f"Found {len(result)} available widget(s)",
-                [w.get('name') for w in result]
+                [w.get("name") for w in result],
             )
         except Exception as e:
             results.add("get_available_custom_widgets", False, str(e))
@@ -374,7 +351,9 @@ async def test_all_tools():
         # NOTE: Comme remove_table n'existe pas dans l'API, on laisse la table
         # L'utilisateur peut la supprimer manuellement via l'interface Grist
         if test_table_created:
-            print(f"\n⚠️  ATTENTION: Table de test '{TEST_TABLE_NAME}' créée mais non supprimée")
+            print(
+                f"\n⚠️  ATTENTION: Table de test '{TEST_TABLE_NAME}' créée mais non supprimée"
+            )
             print(f"   (L'API Grist ne permet pas de supprimer des tables)")
             print(f"   Vous pouvez la supprimer manuellement via l'interface Grist")
 

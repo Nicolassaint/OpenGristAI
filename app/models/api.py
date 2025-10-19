@@ -33,7 +33,8 @@ class ChatRequest(BaseModel):
         default=None, description="ID of the table currently being viewed by the user"
     )
     currentTableName: Optional[str] = Field(
-        default=None, description="Human-readable name of the table currently being viewed"
+        default=None,
+        description="Human-readable name of the table currently being viewed",
     )
     executionMode: Optional[str] = Field(default=None, description="Execution mode")
     webhookUrl: Optional[str] = Field(default=None, description="Webhook URL")
@@ -45,7 +46,12 @@ class ChatRequest(BaseModel):
                     {
                         "id": "msg-1",
                         "role": "user",
-                        "parts": [{"type": "text", "text": "What tables are in this document?"}],
+                        "parts": [
+                            {
+                                "type": "text",
+                                "text": "What tables are in this document?",
+                            }
+                        ],
                         "createdAt": "2024-01-01T00:00:00Z",
                     }
                 ],
@@ -86,7 +92,8 @@ class ChatResponse(BaseModel):
         default=False, description="Whether user confirmation is required"
     )
     confirmation_request: Optional[Dict[str, Any]] = Field(
-        default=None, description="Confirmation request details if confirmation required"
+        default=None,
+        description="Confirmation request details if confirmation required",
     )
 
     class Config:

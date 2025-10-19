@@ -104,9 +104,7 @@ class ValidationService:
         logger.debug(f"Column '{column_id}' in table '{table_id}' validated")
         return column
 
-    async def validate_record_data(
-        self, table_id: str, record: Dict[str, Any]
-    ) -> None:
+    async def validate_record_data(self, table_id: str, record: Dict[str, Any]) -> None:
         """
         Validate record data against table schema.
 

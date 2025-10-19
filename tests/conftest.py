@@ -173,9 +173,7 @@ def mock_grist_client(sample_tables, sample_columns, sample_records):
     # Mock add_records
     async def add_records(table_id: str, records: List[Dict[str, Any]]):
         return {
-            "records": [
-                {"id": i + 100, **record} for i, record in enumerate(records)
-            ]
+            "records": [{"id": i + 100, **record} for i, record in enumerate(records)]
         }
 
     mock_client.add_records.side_effect = add_records
@@ -223,7 +221,9 @@ def mock_grist_client(sample_tables, sample_columns, sample_records):
 
 
 @pytest.fixture
-def mock_grist_service(mock_grist_client, sample_tables, sample_columns, sample_records):
+def mock_grist_service(
+    mock_grist_client, sample_tables, sample_columns, sample_records
+):
     """Mock GristService with sample data."""
     service = GristService(
         document_id="test-doc",
@@ -281,7 +281,9 @@ def sample_chat_request() -> Dict[str, Any]:
             {
                 "id": "msg-1",
                 "role": "user",
-                "parts": [{"type": "text", "text": "What tables are in this document?"}],
+                "parts": [
+                    {"type": "text", "text": "What tables are in this document?"}
+                ],
                 "createdAt": "2024-01-01T00:00:00Z",
             }
         ],

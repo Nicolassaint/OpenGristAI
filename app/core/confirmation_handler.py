@@ -134,7 +134,9 @@ class ConfirmationHandler:
         elif tool_name == "update_table_column":
             # Need to fetch current type first
             columns = await self.grist_service.get_table_columns(tool_args["table_id"])
-            column = next((c for c in columns if c["id"] == tool_args["column_id"]), None)
+            column = next(
+                (c for c in columns if c["id"] == tool_args["column_id"]), None
+            )
 
             if column:
                 old_type = column.get("fields", {}).get("type", "Unknown")

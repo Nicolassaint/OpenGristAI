@@ -100,7 +100,9 @@ class ConfirmationService:
 
         return request
 
-    def approve_confirmation(self, confirmation_id: str) -> Optional[ConfirmationRequest]:
+    def approve_confirmation(
+        self, confirmation_id: str
+    ) -> Optional[ConfirmationRequest]:
         """
         Approve a confirmation and remove it from pending.
 

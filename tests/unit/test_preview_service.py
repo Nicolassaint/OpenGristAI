@@ -24,10 +24,12 @@ class TestPreviewService:
     async def test_preview_remove_records(self, preview_service, mock_grist_service):
         """Test preview for record deletion."""
         # Mock query to return sample records
-        mock_grist_service.query_document = AsyncMock(return_value=[
-            {"id": 1, "Name": "John", "Age": 20},
-            {"id": 2, "Name": "Jane", "Age": 21},
-        ])
+        mock_grist_service.query_document = AsyncMock(
+            return_value=[
+                {"id": 1, "Name": "John", "Age": 20},
+                {"id": 2, "Name": "Jane", "Age": 21},
+            ]
+        )
 
         preview = await preview_service.preview_remove_records(
             table_id="Students", record_ids=[1, 2, 3, 4, 5]
@@ -38,15 +40,20 @@ class TestPreviewService:
         assert preview.is_reversible is False
         assert len(preview.warnings) > 0
         assert "IRRÉVERSIBLE" in preview.warnings[0]
-        assert preview.description == "Supprimer 5 enregistrement(s) de la table 'Students'"
+        assert (
+            preview.description
+            == "Supprimer 5 enregistrement(s) de la table 'Students'"
+        )
 
     async def test_preview_remove_column(self, preview_service, mock_grist_service):
         """Test preview for column deletion."""
         # Mock get_table_columns
-        mock_grist_service.get_table_columns = AsyncMock(return_value=[
-            {"id": "Name", "fields": {"type": "Text", "label": "Full Name"}},
-            {"id": "Age", "fields": {"type": "Int", "label": "Age"}},
-        ])
+        mock_grist_service.get_table_columns = AsyncMock(
+            return_value=[
+                {"id": "Name", "fields": {"type": "Text", "label": "Full Name"}},
+                {"id": "Age", "fields": {"type": "Int", "label": "Age"}},
+            ]
+        )
 
         # Mock query to count records with data
         mock_grist_service.query_document = AsyncMock(return_value=[{"count": 25}])
@@ -64,10 +71,12 @@ class TestPreviewService:
     async def test_preview_update_records(self, preview_service, mock_grist_service):
         """Test preview for record updates."""
         # Mock query to return current records
-        mock_grist_service.query_document = AsyncMock(return_value=[
-            {"id": 1, "Name": "John", "Grade": "B"},
-            {"id": 2, "Name": "Jane", "Grade": "C"},
-        ])
+        mock_grist_service.query_document = AsyncMock(
+            return_value=[
+                {"id": 1, "Name": "John", "Grade": "B"},
+                {"id": 2, "Name": "Jane", "Grade": "C"},
+            ]
+        )
 
         new_records = [
             {"Grade": "A"},
@@ -138,7 +147,9 @@ class TestPreviewService:
     ):
         """Test preview handles query errors gracefully."""
         # Make query fail
-        mock_grist_service.query_document = AsyncMock(side_effect=Exception("Query failed"))
+        mock_grist_service.query_document = AsyncMock(
+            side_effect=Exception("Query failed")
+        )
 
         # Should not crash, just return empty affected_items
         preview = await preview_service.preview_remove_records(
@@ -153,12 +164,16 @@ class TestPreviewService:
         self, preview_service, mock_grist_service
     ):
         """Test preview handles count query errors."""
-        mock_grist_service.get_table_columns = AsyncMock(return_value=[
-            {"id": "Age", "fields": {"type": "Int", "label": "Age"}},
-        ])
+        mock_grist_service.get_table_columns = AsyncMock(
+            return_value=[
+                {"id": "Age", "fields": {"type": "Int", "label": "Age"}},
+            ]
+        )
 
         # Make count query fail
-        mock_grist_service.query_document = AsyncMock(side_effect=Exception("Count failed"))
+        mock_grist_service.query_document = AsyncMock(
+            side_effect=Exception("Count failed")
+        )
 
         preview = await preview_service.preview_remove_column(
             table_id="Students", column_id="Age"

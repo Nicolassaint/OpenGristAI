@@ -35,7 +35,9 @@ def get_grist_service() -> GristService:
     """Get the Grist service for the current context."""
     service = _grist_service.get()
     if service is None:
-        raise RuntimeError("GristService not configured. Call set_grist_service() first.")
+        raise RuntimeError(
+            "GristService not configured. Call set_grist_service() first."
+        )
     return service
 
 
@@ -144,12 +146,14 @@ async def get_sample_records(table_id: str, limit: int = 10) -> List[Dict[str, A
 
 
 @tool
-async def query_document(query: str, args: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
+async def query_document(
+    query: str, args: Optional[List[Any]] = None
+) -> List[Dict[str, Any]]:
     """
     Runs a SQL SELECT query against a Grist document and returns matching rows.
     Only SQLite-compatible SQL is supported. Max 100 rows returned automatically.
 
-    IMPORTANT: 
+    IMPORTANT:
     - Always use LIMIT clause in queries (max 100)
     - Use aggregation functions: AVG(), COUNT(), SUM(), MIN(), MAX()
     - STDEV() is NOT supported. For standard deviation use: SQRT(AVG(col * col) - AVG(col) * AVG(col))
@@ -448,27 +452,27 @@ async def get_available_custom_widgets() -> List[Dict[str, str]]:
         {
             "name": "Calendar",
             "url": "https://gristlabs.github.io/grist-widget/calendar/",
-            "description": "Display records in a calendar view"
+            "description": "Display records in a calendar view",
         },
         {
             "name": "Map",
             "url": "https://gristlabs.github.io/grist-widget/map/",
-            "description": "Display records on an interactive map"
+            "description": "Display records on an interactive map",
         },
         {
             "name": "Chart",
             "url": "https://gristlabs.github.io/grist-widget/chart/",
-            "description": "Create interactive charts and graphs"
+            "description": "Create interactive charts and graphs",
         },
         {
             "name": "Timeline",
             "url": "https://gristlabs.github.io/grist-widget/timeline/",
-            "description": "Visualize data on a timeline"
+            "description": "Visualize data on a timeline",
         },
         {
             "name": "Kanban",
             "url": "https://gristlabs.github.io/grist-widget/kanban/",
-            "description": "Organize records in a Kanban board"
+            "description": "Organize records in a Kanban board",
         },
     ]
 
@@ -492,23 +496,18 @@ def get_all_tools() -> List:
         get_tables,
         get_table_columns,
         get_sample_records,
-
         # Query (1 tool)
         query_document,
-
         # Record operations (3 tools)
         add_records,
         update_records,
         remove_records,
-
         # Table management via REST API (1 tool)
         add_table,
-
         # Column management via REST API (3 tools)
         add_table_column,
         update_table_column,
         remove_table_column,
-
         # Utilities (2 tools)
         get_grist_access_rules_reference,
         get_available_custom_widgets,

@@ -22,7 +22,13 @@ from app.models.api import (
 )
 
 # Configuration (imported from core for convenience)
-from app.core.config import Settings, settings, get_settings, is_development, is_production
+from app.core.config import (
+    Settings,
+    settings,
+    get_settings,
+    is_development,
+    is_production,
+)
 
 # Exceptions
 from app.models.exceptions import (

@@ -39,7 +39,12 @@ class ChatRequest(BaseModel):
                     {
                         "id": "msg-1",
                         "role": "user",
-                        "parts": [{"type": "text", "text": "What tables are in this document?"}],
+                        "parts": [
+                            {
+                                "type": "text",
+                                "text": "What tables are in this document?",
+                            }
+                        ],
                         "createdAt": "2024-01-01T00:00:00Z",
                     }
                 ],

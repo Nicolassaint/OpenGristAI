@@ -34,15 +34,18 @@ class LLMConfig:
         self.base_url = base_url if base_url is not None else settings.openai_base_url
         self.model_name = model_name or settings.openai_model
 
-        self.temperature = temperature if temperature is not None else settings.llm_temperature
-        self.max_tokens = max_tokens if max_tokens is not None else settings.llm_max_tokens
+        self.temperature = (
+            temperature if temperature is not None else settings.llm_temperature
+        )
+        self.max_tokens = (
+            max_tokens if max_tokens is not None else settings.llm_max_tokens
+        )
         self.timeout = timeout or settings.llm_timeout
         self.max_retries = max_retries or settings.llm_max_retries
 
         if not self.api_key:
             raise ValueError(
-                "OPENAI_API_KEY is required. "
-                "Please set it in your .env file."
+                "OPENAI_API_KEY is required. " "Please set it in your .env file."
             )
 
 
