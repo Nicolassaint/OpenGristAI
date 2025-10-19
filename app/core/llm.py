@@ -3,13 +3,16 @@ LLM Configuration Module
 
 This module handles the initialization and configuration of the LangChain LLM.
 Supports OpenAI-compatible APIs (OpenAI, Ollama, LM Studio, etc.)
+Includes validation and diagnostics for function calling compatibility.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import HumanMessage
+from langchain_core.tools import tool
 
 from app.models import settings
 
@@ -47,6 +50,107 @@ class LLMConfig:
             raise ValueError(
                 "OPENAI_API_KEY is required. " "Please set it in your .env file."
             )
+
+
+async def validate_function_calling(llm: BaseChatModel, model_name: str) -> Dict[str, Any]:
+    """
+    Validates that the LLM properly supports function calling.
+    
+    This performs a simple test call with a dummy tool to verify:
+    1. The model understands tool binding
+    2. The model can generate tool calls in the correct format
+    3. The response structure is as expected
+    
+    Args:
+        llm: The LLM instance to test
+        model_name: Name of the model (for logging)
+        
+    Returns:
+        Dictionary with validation results:
+            - supported: bool - Whether function calling is supported
+            - has_tool_calls_attr: bool - Whether response has tool_calls attribute
+            - test_passed: bool - Whether the test call succeeded
+            - error: Optional error message
+            - response_type: Type of response received
+    """
+    logger.info(f"🔍 Validating function calling support for model: {model_name}")
+    
+    # Create a simple test tool
+    @tool
+    def test_tool(x: int) -> int:
+        """A simple test tool that returns x + 1."""
+        return x + 1
+    
+    try:
+        # Bind the test tool
+        llm_with_test_tool = llm.bind_tools([test_tool])
+        
+        # Make a test call that should trigger the tool
+        test_message = HumanMessage(
+            content="Call the test_tool function with x=5. This is a test."
+        )
+        
+        response = await llm_with_test_tool.ainvoke([test_message])
+        
+        # Analyze the response
+        response_type = type(response).__name__
+        has_tool_calls = hasattr(response, "tool_calls")
+        tool_calls_value = getattr(response, "tool_calls", None)
+        
+        logger.debug(f"Test response type: {response_type}")
+        logger.debug(f"Has tool_calls attribute: {has_tool_calls}")
+        logger.debug(f"tool_calls value: {tool_calls_value}")
+        
+        # Check if function calling is working
+        if has_tool_calls and tool_calls_value:
+            logger.info(f"✅ Function calling validation PASSED for {model_name}")
+            logger.info(f"   Model correctly generated {len(tool_calls_value)} tool call(s)")
+            return {
+                "supported": True,
+                "has_tool_calls_attr": True,
+                "test_passed": True,
+                "response_type": response_type,
+                "num_tool_calls": len(tool_calls_value),
+            }
+        elif has_tool_calls and not tool_calls_value:
+            logger.warning(
+                f"⚠️  Function calling validation UNCERTAIN for {model_name}: "
+                f"Model has tool_calls attribute but returned empty list. "
+                f"This may indicate partial support or the model choosing not to call tools."
+            )
+            return {
+                "supported": True,  # Has the attribute
+                "has_tool_calls_attr": True,
+                "test_passed": False,
+                "response_type": response_type,
+                "warning": "Empty tool_calls list",
+            }
+        else:
+            logger.error(
+                f"🔴 Function calling validation FAILED for {model_name}: "
+                f"Model response does not have 'tool_calls' attribute. "
+                f"This model likely does not support function calling."
+            )
+            return {
+                "supported": False,
+                "has_tool_calls_attr": False,
+                "test_passed": False,
+                "response_type": response_type,
+                "error": "No tool_calls attribute in response",
+            }
+            
+    except Exception as e:
+        logger.error(
+            f"❌ Function calling validation ERROR for {model_name}: {str(e)}",
+            exc_info=True
+        )
+        return {
+            "supported": False,
+            "has_tool_calls_attr": False,
+            "test_passed": False,
+            "error": str(e),
+            "exception_type": type(e).__name__,
+        }
 
 
 def get_llm(config: Optional[LLMConfig] = None) -> BaseChatModel:

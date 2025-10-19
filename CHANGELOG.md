@@ -8,9 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Function calling diagnostics system** for LLM compatibility testing
+- **Detailed logging** for tool calls, responses, and execution flow
+- **Execution metrics** (iterations, tool calls, failure rates) in agent responses
+- **Automatic validation** for function calling support at agent startup (optional)
+- `validate_function_calling()` method to test LLM compatibility
+- **Pattern detection** for common failure modes (no tools, empty lists, high failure rates)
+- **Diagnostic warnings** when LLM behavior is suspicious
+- Test script for validating new models (`tests/test_function_calling_validation.py`)
+- Comprehensive documentation (`docs/FUNCTION_CALLING_DIAGNOSTICS.md`)
 - Phase 3: Conversation history with Redis
 - Phase 3: Context management across multiple messages
 - Phase 4: LangSmith/LangFuse integration for observability
+
+### Changed
+- **Enhanced logging** with emojis and severity indicators (✅ ⚠️ ❌ 🔴)
+- Agent now returns `metrics` in response payload
+- Improved error messages with actionable recommendations
+
+### Fixed
+- Silent failures when LLM doesn't support function calling
+- Difficult-to-diagnose compatibility issues with different model providers
 
 ## [0.2.0] - 2025-01-19
 

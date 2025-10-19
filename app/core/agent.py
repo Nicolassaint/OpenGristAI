@@ -44,6 +44,7 @@ class GristAgent:
         max_iterations: Optional[int] = None,
         verbose: Optional[bool] = None,
         enable_confirmations: bool = True,
+        validate_function_calling_on_init: bool = False,
     ):
         """
         Initialize the Grist AI Agent.
@@ -59,6 +60,8 @@ class GristAgent:
             max_iterations: Maximum number of tool calls allowed (defaults to settings.agent_max_iterations)
             verbose: Whether to log agent actions (defaults to settings.agent_verbose)
             enable_confirmations: Whether to require confirmation for destructive operations (default: True)
+            validate_function_calling_on_init: Whether to validate function calling support at startup (default: False)
+                Note: This makes a test API call to the LLM, which may add latency and cost.
         """
         self.document_id = document_id
         self.grist_token = grist_token
@@ -71,6 +74,11 @@ class GristAgent:
         self.max_iterations = max_iterations or settings.agent_max_iterations
         self.verbose = verbose if verbose is not None else settings.agent_verbose
         self.enable_confirmations = enable_confirmations
+        self.validate_function_calling_on_init = validate_function_calling_on_init
+        
+        # Store validation results
+        self.function_calling_validated = False
+        self.function_calling_validation_result: Optional[Dict[str, Any]] = None
 
         # Create Grist service
         from app.services.grist_service import GristService
@@ -119,6 +127,34 @@ class GristAgent:
             f"base_url={self.base_url}"
         )
 
+    async def validate_function_calling(self) -> Dict[str, Any]:
+        """
+        Validates that the configured LLM properly supports function calling.
+        
+        This is useful when trying a new model or provider to ensure compatibility
+        before experiencing mysterious failures in production.
+        
+        Returns:
+            Dictionary with validation results (see llm.validate_function_calling)
+        """
+        from app.core.llm import validate_function_calling
+        
+        logger.info("Running function calling validation...")
+        result = await validate_function_calling(self.llm, settings.openai_model)
+        
+        self.function_calling_validated = True
+        self.function_calling_validation_result = result
+        
+        # Raise a warning if validation failed
+        if not result.get("test_passed", False):
+            logger.warning(
+                "⚠️  Function calling validation did not pass. "
+                "The agent may not work correctly with this model. "
+                f"Details: {result}"
+            )
+        
+        return result
+
     async def cleanup(self):
         """Clean up resources (close HTTP connections)."""
         await self.grist_service.close()
@@ -148,6 +184,7 @@ class GristAgent:
                 - intermediate_steps: List of (tool_call, result) tuples
                 - success: Whether the execution was successful
                 - error: Error message if failed
+                - metrics: Execution metrics (iterations, tool calls, failures)
 
         TODO:
             - Add error recovery for failed tool calls
@@ -155,6 +192,13 @@ class GristAgent:
             - Add conversation context tracking
         """
         try:
+            # Validate function calling on first run if requested
+            if self.validate_function_calling_on_init and not self.function_calling_validated:
+                validation_result = await self.validate_function_calling()
+                if not validation_result.get("test_passed", False):
+                    logger.error(
+                        "🔴 Function calling validation failed. Agent may not work correctly."
+                    )
             # Build messages
             messages = [SystemMessage(content=self.system_prompt)]
 
@@ -179,7 +223,11 @@ class GristAgent:
             # Track intermediate steps
             intermediate_steps = []
 
-            # Agent loop
+            # Agent loop - Track metrics
+            tool_call_count = 0
+            failed_tool_calls = 0
+            iterations_without_tools = 0
+            
             for iteration in range(self.max_iterations):
                 logger.debug(f"\n{'='*80}")
                 logger.debug(f"AGENT ITERATION {iteration + 1}/{self.max_iterations}")
@@ -189,18 +237,61 @@ class GristAgent:
                 logger.debug("Calling LLM...")
                 response = await self.llm_with_tools.ainvoke(messages)
 
-                # Log LLM response
+                # ============================================================
+                # DETAILED RESPONSE LOGGING FOR DIAGNOSTICS
+                # ============================================================
+                logger.debug(f"LLM Response Type: {type(response).__name__}")
+                logger.debug(f"Response has 'content': {hasattr(response, 'content')}")
+                logger.debug(f"Response has 'tool_calls': {hasattr(response, 'tool_calls')}")
+                
+                # Log response content
                 if hasattr(response, "content") and response.content:
-                    logger.debug(f"LLM Response Content: {response.content[:500]}...")
+                    content_preview = response.content[:500] if len(response.content) > 500 else response.content
+                    logger.debug(f"LLM Response Content ({len(response.content)} chars): {content_preview}")
+                    if len(response.content) > 500:
+                        logger.debug("... (content truncated)")
+                else:
+                    logger.debug("LLM Response Content: <empty>")
 
-                logger.debug(
-                    f"LLM wants to call tools: {hasattr(response, 'tool_calls') and bool(response.tool_calls)}"
-                )
+                # Log tool_calls structure in detail
+                if hasattr(response, "tool_calls"):
+                    tool_calls_value = response.tool_calls
+                    logger.debug(f"tool_calls attribute type: {type(tool_calls_value)}")
+                    logger.debug(f"tool_calls value: {tool_calls_value}")
+                    logger.debug(f"tool_calls bool value: {bool(tool_calls_value)}")
+                    
+                    if tool_calls_value:
+                        logger.debug(f"Number of tool calls: {len(tool_calls_value)}")
+                        for idx, tc in enumerate(tool_calls_value):
+                            logger.debug(f"  Tool call {idx + 1} structure: {type(tc)}")
+                    else:
+                        logger.warning(
+                            "⚠️  LLM returned empty tool_calls list. "
+                            "This may indicate the model doesn't understand function calling properly."
+                        )
+                        iterations_without_tools += 1
+                else:
+                    logger.warning(
+                        "⚠️  LLM response has no 'tool_calls' attribute. "
+                        "This model may not support function calling."
+                    )
+                    iterations_without_tools += 1
+                
+                # Detect suspicious patterns
+                if iterations_without_tools >= 3:
+                    logger.error(
+                        f"🔴 FUNCTION CALLING FAILURE: No tool calls for {iterations_without_tools} consecutive iterations. "
+                        f"This strongly suggests the LLM ({settings.openai_model}) doesn't properly support function calling. "
+                        f"Consider using a different model (e.g., gpt-4, gpt-3.5-turbo, claude-3-sonnet, mistral-large-latest)."
+                    )
 
                 # Check if LLM wants to call tools
                 if hasattr(response, "tool_calls") and response.tool_calls:
-                    logger.debug(
-                        f"LLM requested {len(response.tool_calls)} tool call(s)"
+                    # Reset counter - LLM is calling tools correctly
+                    iterations_without_tools = 0
+                    
+                    logger.info(
+                        f"✓ LLM requested {len(response.tool_calls)} tool call(s) - function calling working correctly"
                     )
 
                     # Add AI message to conversation
@@ -208,9 +299,17 @@ class GristAgent:
 
                     # Execute each tool call (in parallel via asyncio)
                     for idx, tool_call in enumerate(response.tool_calls):
-                        tool_name = tool_call["name"]
-                        tool_args = tool_call["args"]
-                        tool_id = tool_call.get("id", "unknown")
+                        try:
+                            tool_name = tool_call["name"]
+                            tool_args = tool_call["args"]
+                            tool_id = tool_call.get("id", "unknown")
+                        except (KeyError, TypeError) as e:
+                            logger.error(
+                                f"🔴 MALFORMED TOOL CALL: Unable to parse tool call structure. "
+                                f"Error: {e}, Tool call object: {tool_call}"
+                            )
+                            failed_tool_calls += 1
+                            continue
 
                         logger.debug(
                             f"\n--- Tool Call {idx + 1}/{len(response.tool_calls)} ---"
@@ -218,6 +317,8 @@ class GristAgent:
                         logger.debug(f"Tool: {tool_name}")
                         logger.debug(f"Args: {tool_args}")
                         logger.debug(f"ID: {tool_id}")
+                        
+                        tool_call_count += 1
 
                         if tool_name in self.tools_by_name:
                             # Check if this operation requires confirmation
@@ -288,15 +389,19 @@ class GristAgent:
                                         tool_call_id=tool_id,
                                     )
                                 )
-                                logger.debug(
-                                    f"✓ Tool {tool_name} executed successfully"
+                                logger.info(
+                                    f"✅ Tool '{tool_name}' executed successfully"
                                 )
 
                             except Exception as e:
+                                failed_tool_calls += 1
                                 error_msg = (
                                     f"Error executing tool {tool_name}: {str(e)}"
                                 )
-                                logger.error(error_msg, exc_info=True)
+                                logger.error(
+                                    f"❌ Tool '{tool_name}' failed: {str(e)}", 
+                                    exc_info=True
+                                )
 
                                 # Add error message
                                 messages.append(
@@ -331,31 +436,71 @@ class GristAgent:
                     )
                     logger.debug(f"{'='*80}\n")
 
-                    logger.info("Agent execution completed successfully")
-                    logger.debug(f"Total intermediate steps: {len(intermediate_steps)}")
+                    # Log execution summary
+                    logger.info("✅ Agent execution completed successfully")
+                    logger.info(f"📊 Execution Summary:")
+                    logger.info(f"   - Total iterations: {iteration + 1}/{self.max_iterations}")
+                    logger.info(f"   - Total tool calls: {tool_call_count}")
+                    logger.info(f"   - Failed tool calls: {failed_tool_calls}")
+                    logger.info(f"   - Success rate: {((tool_call_count - failed_tool_calls) / tool_call_count * 100 if tool_call_count > 0 else 0):.1f}%")
+                    logger.debug(f"   - Total intermediate steps: {len(intermediate_steps)}")
 
                     return {
                         "output": response.content,
                         "intermediate_steps": intermediate_steps,
                         "success": True,
+                        "metrics": {
+                            "iterations": iteration + 1,
+                            "tool_calls": tool_call_count,
+                            "failed_tool_calls": failed_tool_calls,
+                        }
                     }
 
             # Max iterations reached
-            logger.warning(f"Agent reached max iterations ({self.max_iterations})")
+            logger.error(f"⚠️  Agent reached max iterations ({self.max_iterations})")
+            logger.info(f"📊 Execution Summary (Max Iterations):")
+            logger.info(f"   - Total tool calls: {tool_call_count}")
+            logger.info(f"   - Failed tool calls: {failed_tool_calls}")
+            logger.info(f"   - Iterations without tools: {iterations_without_tools}")
+            
+            # Provide diagnostic information
+            if tool_call_count == 0:
+                logger.error(
+                    "🔴 CRITICAL: Agent made 0 tool calls across all iterations. "
+                    "This indicates a serious function calling compatibility issue."
+                )
+            elif failed_tool_calls / tool_call_count > 0.5:
+                logger.error(
+                    f"🔴 CRITICAL: High failure rate ({failed_tool_calls}/{tool_call_count}). "
+                    "The LLM is calling tools but they're failing frequently."
+                )
+            
             return {
                 "output": "I apologize, but I've reached the maximum number of steps. Please try rephrasing your request.",
                 "intermediate_steps": intermediate_steps,
                 "success": False,
                 "error": "Max iterations reached",
+                "metrics": {
+                    "iterations": self.max_iterations,
+                    "tool_calls": tool_call_count,
+                    "failed_tool_calls": failed_tool_calls,
+                    "iterations_without_tools": iterations_without_tools,
+                }
             }
 
         except Exception as e:
-            logger.error(f"Agent execution failed: {str(e)}", exc_info=True)
+            logger.error(f"❌ Agent execution failed: {str(e)}", exc_info=True)
+            logger.error(f"Exception type: {type(e).__name__}")
             return {
                 "output": f"I encountered an error: {str(e)}. Please try again or rephrase your request.",
                 "intermediate_steps": [],
                 "success": False,
                 "error": str(e),
+                "metrics": {
+                    "iterations": 0,
+                    "tool_calls": 0,
+                    "failed_tool_calls": 0,
+                }
             }
 
     def update_context(
