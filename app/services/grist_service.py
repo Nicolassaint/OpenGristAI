@@ -340,18 +340,25 @@ class GristService:
     ) -> List[Dict[str, Any]]:
         """
         Execute a SQL query against the document.
+        Automatically limits results to 100 rows maximum to prevent token overflow.
 
         Args:
             query: SQL SELECT query
             args: Optional query arguments
 
         Returns:
-            List of matching records.
+            List of matching records (max 100 rows).
         """
         logger.info(f"Executing query: {query[:100]}...")
 
         try:
             results = await self.client.query_sql(query, args)
+            
+            # Apply hard limit of 100 rows to prevent token overflow
+            if len(results) > 100:
+                logger.warning(f"Query returned {len(results)} records, limiting to 100 to prevent token overflow")
+                results = results[:100]
+            
             logger.debug(f"Query returned {len(results)} records")
             return results
         except Exception as e:

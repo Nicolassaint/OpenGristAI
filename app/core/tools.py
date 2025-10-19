@@ -115,14 +115,19 @@ async def get_table_columns(table_id: str) -> List[Dict[str, Any]]:
 async def query_document(query: str, args: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
     """
     Runs a SQL SELECT query against a Grist document and returns matching rows.
-    Only SQLite-compatible SQL is supported.
+    Only SQLite-compatible SQL is supported. Max 100 rows returned automatically.
+
+    IMPORTANT: 
+    - Always use LIMIT clause in queries (max 100)
+    - Use aggregation functions: AVG(), COUNT(), SUM(), MIN(), MAX()
+    - STDEV() is NOT supported. For standard deviation use: SQRT(AVG(col * col) - AVG(col) * AVG(col))
 
     Args:
-        query: The SQL SELECT query to execute
+        query: The SQL SELECT query to execute (must include LIMIT)
         args: Optional list of arguments for parameterized queries
 
     Returns:
-        List of matching rows as dictionaries.
+        List of matching rows as dictionaries (max 100 rows).
     """
     service = get_grist_service()
     return await service.query_document(query, args)
