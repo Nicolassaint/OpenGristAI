@@ -332,6 +332,59 @@ class GristService:
             raise
 
     # ========================================================================
+    # Sample Data Operations
+    # ========================================================================
+
+    async def get_sample_records(
+        self, table_id: str, limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Get sample records from a table to understand actual data values.
+
+        This is particularly useful before generating SQL queries to see
+        the actual values in columns (e.g., 'F'/'M' vs 'Homme'/'Femme').
+
+        Args:
+            table_id: Table ID
+            limit: Number of sample records to return (default: 10, max: 10)
+
+        Returns:
+            List of sample records with their actual field values.
+
+        Raises:
+            TableNotFoundException: If table doesn't exist
+        """
+        logger.info(f"Getting {limit} sample records from table '{table_id}'")
+
+        # Validate table exists
+        validator = self._get_validator()
+        if validator:
+            await validator.validate_table_exists(table_id)
+
+        # Enforce max limit of 10 to prevent token overflow
+        limit = min(limit, 10)
+
+        try:
+            records = await self.client.get_records(table_id, limit=limit)
+            
+            # Extract just the fields from each record (remove internal metadata)
+            samples = []
+            for record in records:
+                # Grist records have structure: {"id": ..., "fields": {...}}
+                if "fields" in record:
+                    samples.append(record["fields"])
+                else:
+                    # Fallback if structure is different
+                    samples.append(record)
+            
+            logger.debug(f"Retrieved {len(samples)} sample records from table '{table_id}'")
+            return samples
+
+        except Exception as e:
+            logger.error(f"Error getting sample records from table '{table_id}': {e}")
+            raise
+
+    # ========================================================================
     # Query Operations
     # ========================================================================
 

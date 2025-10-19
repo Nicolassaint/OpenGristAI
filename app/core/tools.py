@@ -112,6 +112,38 @@ async def get_table_columns(table_id: str) -> List[Dict[str, Any]]:
 
 
 @tool
+async def get_sample_records(table_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    """
+    Returns sample records from a table to understand actual data values.
+
+    CRITICAL: Use this tool BEFORE generating SQL queries involving:
+    - Categorical columns (gender, status, categories, types, etc.)
+    - Choice columns or columns with limited distinct values
+    - Any column where you need to know the actual values to write correct WHERE clauses
+
+    This prevents assumptions about values. For example:
+    - A 'sexe' column might contain 'F'/'M' or 'Homme'/'Femme' or '0'/'1'
+    - A 'status' column might contain 'Active'/'Inactive' or 'A'/'I' or '1'/'0'
+    - A 'category' column might use codes ('CAT1', 'CAT2') or full names
+
+    Args:
+        table_id: The ID of the table
+        limit: Number of sample records to return (default: 10, max: 10)
+
+    Returns:
+        List of sample records with actual field values (max 10 records).
+
+    Example:
+        # Before writing: SELECT * FROM Users WHERE sexe = 'Homme'
+        # First call: get_sample_records("Users", 5)
+        # See actual values: [{"sexe": "F", ...}, {"sexe": "M", ...}]
+        # Then write: SELECT * FROM Users WHERE sexe = 'M'
+    """
+    service = get_grist_service()
+    return await service.get_sample_records(table_id, min(limit, 10))
+
+
+@tool
 async def query_document(query: str, args: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
     """
     Runs a SQL SELECT query against a Grist document and returns matching rows.
@@ -450,15 +482,16 @@ def get_all_tools() -> List:
     """
     Returns all available tools for the agent.
 
-    Total: 12 tools using documented Grist REST API endpoints only.
+    Total: 13 tools using documented Grist REST API endpoints only.
 
     Returns:
         List of tool functions.
     """
     return [
-        # Table inspection (2 tools)
+        # Table inspection (3 tools)
         get_tables,
         get_table_columns,
+        get_sample_records,
 
         # Query (1 tool)
         query_document,

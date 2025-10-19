@@ -273,7 +273,7 @@ class GristAPIClient:
     # ========================================================================
 
     async def get_records(
-        self, table_id: str, filters: Optional[Dict[str, Any]] = None
+        self, table_id: str, filters: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """
         Get records from a table.
@@ -281,6 +281,7 @@ class GristAPIClient:
         Args:
             table_id: Table ID
             filters: Optional filters
+            limit: Optional limit on number of records to return
 
         Returns:
             List of records
@@ -289,6 +290,8 @@ class GristAPIClient:
         """
         path = f"/api/docs/{self.document_id}/tables/{table_id}/records"
         params = {}
+        if limit is not None:
+            params["limit"] = limit
         if filters:
             # TODO: Implement filter parameters
             pass
