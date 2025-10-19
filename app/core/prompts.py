@@ -13,6 +13,8 @@ def get_system_prompt(
     current_page_name: str = "data",
     current_page_id: int = 1,
     current_date: Optional[str] = None,
+    current_table_id: Optional[str] = None,
+    current_table_name: Optional[str] = None,
 ) -> str:
     """
     Génère le prompt système pour l'assistant IA Grist.
@@ -21,6 +23,8 @@ def get_system_prompt(
         current_page_name: Nom de la page actuellement visualisée par l'utilisateur
         current_page_id: ID de la page actuelle
         current_date: Date actuelle au format "Month Day, Year". Si None, utilise la date du jour.
+        current_table_id: ID de la table actuellement visualisée par l'utilisateur
+        current_table_name: Nom de la table actuellement visualisée
 
     Returns:
         Prompt système complet sous forme de chaîne
@@ -214,4 +218,5 @@ Si vous souhaitez simplement vider son contenu, je peux supprimer tous les enreg
 
 <context>
 La date actuelle est {current_date}. L'utilisateur est actuellement sur la page {current_page_name} (id: {current_page_id}).
+{f"L'utilisateur visualise actuellement la table '{current_table_name}' (id: {current_table_id}). Privilégiez cette table par défaut sauf si l'utilisateur mentionne explicitement une autre table." if current_table_id else ""}
 </context>"""

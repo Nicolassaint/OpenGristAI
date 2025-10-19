@@ -29,6 +29,12 @@ class ChatRequest(BaseModel):
 
     messages: List[UIMessage] = Field(..., description="Conversation messages")
     documentId: str = Field(..., description="Grist document ID/name")
+    currentTableId: Optional[str] = Field(
+        default=None, description="ID of the table currently being viewed by the user"
+    )
+    currentTableName: Optional[str] = Field(
+        default=None, description="Human-readable name of the table currently being viewed"
+    )
     executionMode: Optional[str] = Field(default=None, description="Execution mode")
     webhookUrl: Optional[str] = Field(default=None, description="Webhook URL")
 
@@ -44,6 +50,8 @@ class ChatRequest(BaseModel):
                     }
                 ],
                 "documentId": "my-document",
+                "currentTableId": "Clients",
+                "currentTableName": "Clients",
                 "executionMode": "production",
             }
         }

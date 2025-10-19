@@ -38,6 +38,8 @@ class GristAgent:
         grist_token: str,
         current_page_name: str = "data",
         current_page_id: int = 1,
+        current_table_id: Optional[str] = None,
+        current_table_name: Optional[str] = None,
         base_url: Optional[str] = None,
         max_iterations: Optional[int] = None,
         verbose: Optional[bool] = None,
@@ -51,6 +53,8 @@ class GristAgent:
             grist_token: JWT access token from Grist widget
             current_page_name: Name of the current page
             current_page_id: ID of the current page
+            current_table_id: ID of the table currently being viewed by the user
+            current_table_name: Human-readable name of the table currently being viewed
             base_url: Base URL for Grist API (defaults to settings.grist_base_url)
             max_iterations: Maximum number of tool calls allowed (defaults to settings.agent_max_iterations)
             verbose: Whether to log agent actions (defaults to settings.agent_verbose)
@@ -62,6 +66,8 @@ class GristAgent:
         self.base_url = base_url or settings.grist_base_url
         self.current_page_name = current_page_name
         self.current_page_id = current_page_id
+        self.current_table_id = current_table_id
+        self.current_table_name = current_table_name
         self.max_iterations = max_iterations or settings.agent_max_iterations
         self.verbose = verbose if verbose is not None else settings.agent_verbose
         self.enable_confirmations = enable_confirmations
@@ -103,6 +109,8 @@ class GristAgent:
         self.system_prompt = get_system_prompt(
             current_page_name=self.current_page_name,
             current_page_id=self.current_page_id,
+            current_table_id=self.current_table_id,
+            current_table_name=self.current_table_name,
         )
 
         logger.info(
@@ -334,20 +342,34 @@ class GristAgent:
                 "error": str(e),
             }
 
-    def update_context(self, page_name: str, page_id: int) -> None:
+    def update_context(
+        self,
+        page_name: str,
+        page_id: int,
+        table_id: Optional[str] = None,
+        table_name: Optional[str] = None,
+    ) -> None:
         """
-        Update the current page context.
+        Update the current page and table context.
 
         Args:
             page_name: New page name
             page_id: New page ID
+            table_id: New table ID (optional)
+            table_name: New table name (optional)
         """
         self.current_page_name = page_name
         self.current_page_id = page_id
+        if table_id is not None:
+            self.current_table_id = table_id
+        if table_name is not None:
+            self.current_table_name = table_name
         # Regenerate system prompt with new context
         self.system_prompt = get_system_prompt(
             current_page_name=page_name,
             current_page_id=page_id,
+            current_table_id=self.current_table_id,
+            current_table_name=self.current_table_name,
         )
         logger.info(f"Context updated to page '{page_name}' (id: {page_id})")
 

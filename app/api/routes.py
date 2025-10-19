@@ -94,6 +94,8 @@ async def chat(
             grist_token=x_api_key,
             current_page_name="data",  # TODO: Get from request if needed
             current_page_id=1,
+            current_table_id=request.currentTableId,
+            current_table_name=request.currentTableName,
         )
 
         try:
