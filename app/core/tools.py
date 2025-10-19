@@ -195,67 +195,32 @@ async def remove_records(table_id: str, record_ids: List[int]) -> Dict[str, Any]
 @tool
 async def add_table(table_id: str, columns: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Creates a new table in the document.
+    Creates a new table in the document via REST API.
 
     Each column must have:
     - id: Column ID (e.g., "Name", "Age")
-    - label: Display label (e.g., "Full Name", "Age in Years")
-    - type: Column type (Text, Numeric, Int, Bool, Date, DateTime, Choice, Ref, etc.)
+    - fields: Object with column properties
+      - type: Column type (Text, Numeric, Int, Bool, Date, DateTime, Choice, Ref, etc.)
+      - label: Display label (optional, defaults to column id)
+      - formula: Formula for computed columns (optional)
+      - widgetOptions: Configuration for widgets (optional)
 
     Args:
         table_id: ID for the new table (e.g., "Students", "Projects")
-        columns: List of column definitions with id, label, and type
+        columns: List of column definitions with id and fields
 
     Returns:
         Result object with created table info.
 
     Example:
         columns = [
-            {"id": "Name", "label": "Student Name", "type": "Text"},
-            {"id": "Age", "label": "Age", "type": "Int"}
+            {"id": "Name", "fields": {"type": "Text", "label": "Full Name"}},
+            {"id": "Age", "fields": {"type": "Int", "label": "Age"}}
         ]
         add_table("Students", columns)
     """
     service = get_grist_service()
     return await service.add_table(table_id, columns)
-
-
-@tool
-async def rename_table(table_id: str, new_name: str) -> Dict[str, Any]:
-    """
-    Renames an existing table in the document.
-
-    IMPORTANT: This will change the table ID, which may affect formulas and references.
-
-    Args:
-        table_id: Current table ID
-        new_name: New table ID/name
-
-    Returns:
-        Result object confirming the rename.
-    """
-    service = get_grist_service()
-    return await service.rename_table(table_id, new_name)
-
-
-@tool
-async def remove_table(table_id: str) -> Dict[str, Any]:
-    """
-    Removes a table from the document.
-
-    WARNING: This is a destructive operation and cannot be undone.
-    All data in the table will be permanently deleted.
-
-    IMPORTANT: Always confirm with the user before removing a table.
-
-    Args:
-        table_id: The ID of the table to remove
-
-    Returns:
-        Result object confirming the deletion.
-    """
-    service = get_grist_service()
-    return await service.remove_table(table_id)
 
 
 # ============================================================================
@@ -267,13 +232,13 @@ async def remove_table(table_id: str) -> Dict[str, Any]:
 async def add_table_column(
     table_id: str,
     column_id: str,
-    label: str,
     col_type: str,
+    label: Optional[str] = None,
     formula: Optional[str] = None,
     widget_options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Adds a new column to an existing table.
+    Adds a new column to an existing table via REST API.
 
     Supported column types:
     - Text: Plain text
@@ -290,8 +255,8 @@ async def add_table_column(
     Args:
         table_id: Table ID to add the column to
         column_id: ID for the new column (e.g., "Email", "Age")
-        label: Display label for the column
         col_type: Column type (Text, Numeric, Int, Bool, Date, Choice, Ref, etc.)
+        label: Display label for the column (optional, defaults to column_id)
         formula: Optional formula for computed columns (e.g., "$Age * 2")
         widget_options: Optional configuration (e.g., {"choices": ["A", "B"]} for Choice)
 
@@ -300,20 +265,20 @@ async def add_table_column(
 
     Example:
         # Simple text column
-        add_table_column("Students", "Email", "Email Address", "Text")
+        add_table_column("Students", "Email", "Text", label="Email Address")
 
         # Choice column
         add_table_column(
             "Students",
             "Grade",
-            "Grade Level",
             "Choice",
+            label="Grade Level",
             widget_options={"choices": ["A", "B", "C", "D", "F"]}
         )
     """
     service = get_grist_service()
     return await service.add_table_column(
-        table_id, column_id, label, col_type, formula, widget_options
+        table_id, column_id, col_type, label, formula, widget_options
     )
 
 
@@ -327,7 +292,7 @@ async def update_table_column(
     widget_options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Updates an existing column's properties.
+    Updates an existing column's properties via REST API.
 
     You can update any combination of: label, type, formula, or widget options.
     At least one property must be specified.
@@ -354,7 +319,7 @@ async def update_table_column(
 @tool
 async def remove_table_column(table_id: str, column_id: str) -> Dict[str, Any]:
     """
-    Removes a column from a table.
+    Removes a column from a table via REST API.
 
     WARNING: This is a destructive operation and cannot be undone.
     All data in this column will be permanently deleted.
@@ -370,166 +335,6 @@ async def remove_table_column(table_id: str, column_id: str) -> Dict[str, Any]:
     """
     service = get_grist_service()
     return await service.remove_table_column(table_id, column_id)
-
-
-# ============================================================================
-# Page Management Tools
-# ============================================================================
-
-
-@tool
-async def get_pages() -> List[Dict[str, Any]]:
-    """
-    Returns all pages in the Grist document.
-
-    A page in Grist represents a view or screen in the document.
-    Each page can contain multiple widgets (tables, charts, forms, etc.).
-
-    Returns:
-        List of page objects with their IDs, names, and metadata.
-    """
-    service = get_grist_service()
-    return await service.get_pages()
-
-
-@tool
-async def update_page(page_id: int, name: str) -> Dict[str, Any]:
-    """
-    Updates a page's properties (currently only name is supported).
-
-    Args:
-        page_id: ID of the page to update
-        name: New name for the page
-
-    Returns:
-        Result object confirming the update.
-    """
-    service = get_grist_service()
-    return await service.update_page(page_id, name=name)
-
-
-@tool
-async def remove_page(page_id: int) -> Dict[str, Any]:
-    """
-    Removes a page from the document.
-
-    WARNING: This is a destructive operation and cannot be undone.
-    All widgets on this page will be deleted.
-
-    IMPORTANT: Always confirm with the user before removing a page.
-
-    Args:
-        page_id: ID of the page to remove
-
-    Returns:
-        Result object confirming the deletion.
-    """
-    service = get_grist_service()
-    return await service.remove_page(page_id)
-
-
-# ============================================================================
-# Widget Management Tools
-# ============================================================================
-
-
-@tool
-async def get_page_widgets(page_id: int) -> List[Dict[str, Any]]:
-    """
-    Returns all widgets on a specific page.
-
-    A widget in Grist is a view component (table, chart, form, etc.) on a page.
-    Each widget displays data from a table and can be customized.
-
-    Args:
-        page_id: ID of the page
-
-    Returns:
-        List of widget objects with their IDs, types, and configuration.
-    """
-    service = get_grist_service()
-    widgets = await service.client.get_page_widgets(page_id)
-    return widgets
-
-
-@tool
-async def add_page_widget(
-    page_id: int,
-    widget_type: str,
-    table_id: str,
-) -> Dict[str, Any]:
-    """
-    Adds a new widget to a page.
-
-    Widget types:
-    - "record": Table view
-    - "chart": Chart widget
-    - "card": Card list view
-    - "custom": Custom widget
-
-    Args:
-        page_id: ID of the page to add the widget to
-        widget_type: Type of widget to create
-        table_id: ID of the table to display in the widget
-
-    Returns:
-        Result object with created widget info.
-    """
-    service = get_grist_service()
-    result = await service.client.add_page_widget(page_id, widget_type, table_id)
-    return {"page_id": page_id, "widget_type": widget_type, "table_id": table_id}
-
-
-@tool
-async def update_page_widget(
-    page_id: int,
-    widget_id: int,
-    title: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    Updates a widget's properties.
-
-    Args:
-        page_id: ID of the page
-        widget_id: ID of the widget to update
-        title: New title for the widget (optional)
-
-    Returns:
-        Result object confirming the update.
-    """
-    service = get_grist_service()
-
-    updates = {}
-    if title is not None:
-        updates["title"] = title
-
-    if not updates:
-        from app.middleware.exceptions import ValidationException
-        raise ValidationException("updates", "At least one property must be updated")
-
-    await service.client.update_page_widget(page_id, widget_id, **updates)
-    return {"page_id": page_id, "widget_id": widget_id, "updated": True}
-
-
-@tool
-async def remove_page_widget(page_id: int, widget_id: int) -> Dict[str, Any]:
-    """
-    Removes a widget from a page.
-
-    WARNING: This is a destructive operation and cannot be undone.
-
-    IMPORTANT: Always confirm with the user before removing a widget.
-
-    Args:
-        page_id: ID of the page
-        widget_id: ID of the widget to remove
-
-    Returns:
-        Result object confirming the deletion.
-    """
-    service = get_grist_service()
-    await service.client.delete_page_widget(page_id, widget_id)
-    return {"page_id": page_id, "widget_id": widget_id, "deleted": True}
 
 
 # ============================================================================
@@ -640,61 +445,33 @@ def get_all_tools() -> List:
     """
     Returns all available tools for the agent.
 
+    Total: 12 tools using documented Grist REST API endpoints only.
+
     Returns:
         List of tool functions.
     """
     return [
-        # Table inspection
+        # Table inspection (2 tools)
         get_tables,
         get_table_columns,
 
-        # Query
+        # Query (1 tool)
         query_document,
 
-        # Record operations
+        # Record operations (3 tools)
         add_records,
         update_records,
         remove_records,
 
-        # Table management
+        # Table management via REST API (1 tool)
         add_table,
-        rename_table,
-        remove_table,
 
-        # Column management
+        # Column management via REST API (3 tools)
         add_table_column,
         update_table_column,
         remove_table_column,
 
-        # Page management
-        get_pages,
-        update_page,
-        remove_page,
-
-        # Widget management
-        get_page_widgets,
-        add_page_widget,
-        update_page_widget,
-        remove_page_widget,
-
-        # Utilities
+        # Utilities (2 tools)
         get_grist_access_rules_reference,
         get_available_custom_widgets,
     ]
-
-
-# TODO: Optional advanced widget features (implement if needed)
-# - get_page_widget_select_by_options: Get options for widget linking
-# - set_page_widget_select_by: Configure widget linking/filtering
-
-# TODO: Add input validation helpers
-# - Validate column types match expected values
-# - Validate choice values against allowed choices
-# - Validate references point to existing records
-# - Auto-format lists with "L" prefix
-
-# TODO: Add tool middleware
-# - Log all tool invocations
-# - Track tool usage metrics
-# - Add permission checks before execution
-# - Implement dry-run mode for destructive operations

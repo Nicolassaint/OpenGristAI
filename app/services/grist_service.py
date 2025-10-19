@@ -27,15 +27,17 @@ class GristService:
         access_token: str,
         base_url: str = "https://docs.getgrist.com",
         enable_validation: bool = True,
+        use_api_key: bool = False,
     ):
         """
         Initialize the Grist service.
 
         Args:
             document_id: Grist document ID or name
-            access_token: JWT access token from Grist
+            access_token: API Key or JWT access token from Grist
             base_url: Base URL for Grist API
             enable_validation: Whether to enable validation (default: True)
+            use_api_key: If True, use API Key auth. If False, use widget JWT token.
         """
         self.document_id = document_id
         self.access_token = access_token
@@ -47,6 +49,7 @@ class GristService:
             document_id=document_id,
             access_token=access_token,
             base_url=base_url,
+            use_api_key=use_api_key,
         )
 
         # Create validation service (lazy loaded)
@@ -117,11 +120,12 @@ class GristService:
         self, table_id: str, columns: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Create a new table in the document.
+        Create a new table in the document via REST API.
 
         Args:
             table_id: ID for the new table
-            columns: List of column definitions, each with 'id', 'label', and 'type'
+            columns: List of column definitions, each with 'id' and 'fields'
+                     fields can contain: label, type, formula, widgetOptions, etc.
 
         Returns:
             Result with created table info
@@ -131,8 +135,8 @@ class GristService:
 
         Example:
             columns = [
-                {"id": "Name", "label": "Name", "type": "Text"},
-                {"id": "Age", "label": "Age", "type": "Int"}
+                {"id": "Name", "fields": {"label": "Name", "type": "Text"}},
+                {"id": "Age", "fields": {"label": "Age", "type": "Int"}}
             ]
             await service.add_table("Students", columns)
         """
@@ -156,73 +160,6 @@ class GristService:
             logger.error(f"Error creating table '{table_id}': {e}")
             raise
 
-    async def rename_table(self, table_id: str, new_name: str) -> Dict[str, Any]:
-        """
-        Rename a table.
-
-        Args:
-            table_id: Current table ID
-            new_name: New table ID/name
-
-        Returns:
-            Result confirming the rename
-
-        Raises:
-            TableNotFoundException: If table doesn't exist
-            ValidationException: If new_name is invalid
-        """
-        logger.info(f"Renaming table '{table_id}' to '{new_name}'")
-
-        # Validate new name
-        if not new_name or not new_name.strip():
-            from app.middleware.exceptions import ValidationException
-            raise ValidationException("new_name", "New table name cannot be empty")
-
-        # Validate table exists
-        validator = self._get_validator()
-        if validator:
-            await validator.validate_table_exists(table_id)
-
-        try:
-            await self.client.update_table(table_id, name=new_name)
-            logger.debug(f"Renamed table '{table_id}' to '{new_name}'")
-            return {"old_name": table_id, "new_name": new_name}
-
-        except Exception as e:
-            logger.error(f"Error renaming table '{table_id}': {e}")
-            raise
-
-    async def remove_table(self, table_id: str) -> Dict[str, Any]:
-        """
-        Remove a table from the document.
-
-        WARNING: This is a destructive operation and cannot be undone.
-
-        Args:
-            table_id: Table ID to remove
-
-        Returns:
-            Result confirming the deletion
-
-        Raises:
-            TableNotFoundException: If table doesn't exist
-        """
-        logger.warning(f"Removing table '{table_id}'")
-
-        # Validate table exists
-        validator = self._get_validator()
-        if validator:
-            await validator.validate_table_exists(table_id)
-
-        try:
-            await self.client.delete_table(table_id)
-            logger.debug(f"Removed table '{table_id}'")
-            return {"table_id": table_id, "deleted": True}
-
-        except Exception as e:
-            logger.error(f"Error removing table '{table_id}': {e}")
-            raise
-
     # ========================================================================
     # Column Operations
     # ========================================================================
@@ -231,19 +168,19 @@ class GristService:
         self,
         table_id: str,
         column_id: str,
-        label: str,
         col_type: str,
+        label: Optional[str] = None,
         formula: Optional[str] = None,
         widget_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Add a new column to a table.
+        Add a new column to a table via REST API.
 
         Args:
             table_id: Table ID
             column_id: Column ID
-            label: Column display label
             col_type: Column type (Text, Numeric, Int, Bool, Date, DateTime, Choice, Ref, etc.)
+            label: Column display label (optional, defaults to column_id)
             formula: Optional formula for computed columns
             widget_options: Optional widget configuration (e.g., choices for Choice columns)
 
@@ -256,14 +193,14 @@ class GristService:
 
         Example:
             # Simple text column
-            await service.add_table_column("Students", "Email", "Email Address", "Text")
+            await service.add_table_column("Students", "Email", "Text", label="Email Address")
 
             # Choice column with options
             await service.add_table_column(
                 "Students",
                 "Grade",
-                "Grade Level",
                 "Choice",
+                label="Grade Level",
                 widget_options={"choices": ["A", "B", "C", "D", "F"]}
             )
         """
@@ -280,13 +217,16 @@ class GristService:
             raise ValidationException("column_id", "Column ID cannot be empty")
 
         try:
-            kwargs = {}
+            # Build column fields dict
+            fields = {"type": col_type}
+            if label:
+                fields["label"] = label
             if formula:
-                kwargs["formula"] = formula
+                fields["formula"] = formula
             if widget_options:
-                kwargs["widgetOptions"] = widget_options
+                fields["widgetOptions"] = widget_options
 
-            await self.client.add_column(table_id, column_id, label, col_type, **kwargs)
+            await self.client.add_column(table_id, column_id, fields)
             logger.debug(f"Added column '{column_id}' to table '{table_id}'")
 
             return {"table_id": table_id, "column_id": column_id, "type": col_type}
@@ -305,7 +245,7 @@ class GristService:
         widget_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Update an existing column's properties.
+        Update an existing column's properties via REST API.
 
         Args:
             table_id: Table ID
@@ -331,21 +271,22 @@ class GristService:
             await validator.validate_column_exists(table_id, column_id)
 
         try:
-            updates = {}
+            # Build fields dict with updates
+            fields = {}
             if label is not None:
-                updates["label"] = label
+                fields["label"] = label
             if col_type is not None:
-                updates["type"] = col_type
+                fields["type"] = col_type
             if formula is not None:
-                updates["formula"] = formula
+                fields["formula"] = formula
             if widget_options is not None:
-                updates["widgetOptions"] = widget_options
+                fields["widgetOptions"] = widget_options
 
-            if not updates:
+            if not fields:
                 from app.middleware.exceptions import ValidationException
                 raise ValidationException("updates", "At least one property must be updated")
 
-            await self.client.update_column(table_id, column_id, **updates)
+            await self.client.update_column(table_id, column_id, fields)
             logger.debug(f"Updated column '{column_id}' in table '{table_id}'")
 
             return {"table_id": table_id, "column_id": column_id, "updated": True}
@@ -356,7 +297,7 @@ class GristService:
 
     async def remove_table_column(self, table_id: str, column_id: str) -> Dict[str, Any]:
         """
-        Remove a column from a table.
+        Remove a column from a table via REST API.
 
         WARNING: This is a destructive operation and cannot be undone.
         All data in this column will be permanently deleted.
@@ -388,83 +329,6 @@ class GristService:
 
         except Exception as e:
             logger.error(f"Error removing column '{column_id}': {e}")
-            raise
-
-    # ========================================================================
-    # Page Operations
-    # ========================================================================
-
-    async def get_pages(self) -> List[Dict[str, Any]]:
-        """
-        Get all pages in the document.
-
-        Returns:
-            List of page objects with their IDs and metadata.
-        """
-        logger.info("Getting all pages")
-        pages = await self.client.get_pages()
-        logger.debug(f"Found {len(pages)} page(s)")
-        return pages
-
-    async def update_page(
-        self, page_id: int, name: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Update a page's properties.
-
-        Args:
-            page_id: Page ID to update
-            name: New name for the page (optional)
-
-        Returns:
-            Result confirming the update
-
-        Raises:
-            ValidationException: If updates are invalid
-        """
-        logger.info(f"Updating page {page_id}")
-
-        updates = {}
-        if name is not None:
-            if not name or not name.strip():
-                from app.middleware.exceptions import ValidationException
-                raise ValidationException("name", "Page name cannot be empty")
-            updates["name"] = name
-
-        if not updates:
-            from app.middleware.exceptions import ValidationException
-            raise ValidationException("updates", "At least one property must be updated")
-
-        try:
-            await self.client.update_page(page_id, **updates)
-            logger.debug(f"Updated page {page_id}")
-            return {"page_id": page_id, "updated": True}
-
-        except Exception as e:
-            logger.error(f"Error updating page {page_id}: {e}")
-            raise
-
-    async def remove_page(self, page_id: int) -> Dict[str, Any]:
-        """
-        Remove a page from the document.
-
-        WARNING: This is a destructive operation and cannot be undone.
-
-        Args:
-            page_id: Page ID to remove
-
-        Returns:
-            Result confirming the deletion
-        """
-        logger.warning(f"Removing page {page_id}")
-
-        try:
-            await self.client.delete_page(page_id)
-            logger.debug(f"Removed page {page_id}")
-            return {"page_id": page_id, "deleted": True}
-
-        except Exception as e:
-            logger.error(f"Error removing page {page_id}: {e}")
             raise
 
     # ========================================================================
@@ -622,20 +486,3 @@ class GristService:
         except Exception as e:
             logger.error(f"Error removing records from table '{table_id}': {e}")
             raise ValueError(f"Failed to remove records: {str(e)}")
-
-
-# TODO: Implement page and widget management operations
-# - get_pages, update_page, remove_page
-# - get_page_widgets, add_page_widget, update_page_widget, remove_page_widget
-# - get_page_widget_select_by_options, set_page_widget_select_by
-# - get_available_custom_widgets
-
-# TODO: Add transaction support
-# - Group multiple operations
-# - Implement rollback on failure
-# - Add dry-run mode
-
-# TODO: Add caching
-# - Cache table schemas (in ValidationService)
-# - Cache frequently accessed data
-# - Implement cache invalidation on writes
