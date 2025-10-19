@@ -60,7 +60,7 @@ class ToolCall(BaseModel):
 class ChatResponse(BaseModel):
     """Response body for the chat endpoint (for Grist front-end)."""
 
-    response: str = Field(..., description="Assistant's response text")
+    response: Optional[str] = Field(None, description="Assistant's response text")
     sql_query: Optional[str] = Field(
         default=None, description="SQL query executed (if any)"
     )
@@ -74,6 +74,12 @@ class ChatResponse(BaseModel):
         default=None, description="List of tools called during execution"
     )
     error: Optional[str] = Field(default=None, description="Error message if failed")
+    requires_confirmation: Optional[bool] = Field(
+        default=False, description="Whether user confirmation is required"
+    )
+    confirmation_request: Optional[Dict[str, Any]] = Field(
+        default=None, description="Confirmation request details if confirmation required"
+    )
 
     class Config:
         json_schema_extra = {

@@ -56,6 +56,16 @@ from app.models.tools import (
     UpdateRecordsInput,
 )
 
+# Confirmation Workflow
+from app.models.confirmation import (
+    ConfirmationDecision,
+    ConfirmationRequest,
+    ConfirmationResponse,
+    ConfirmationStatus,
+    OperationPreview,
+    OperationType,
+)
+
 __all__ = [
     # API Models
     "UIMessage",
@@ -92,4 +102,11 @@ __all__ = [
     "QueryDocumentInput",
     "AddRecordsInput",
     "UpdateRecordsInput",
+    # Confirmation
+    "ConfirmationRequest",
+    "ConfirmationResponse",
+    "ConfirmationDecision",
+    "ConfirmationStatus",
+    "OperationPreview",
+    "OperationType",
 ]

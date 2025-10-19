@@ -590,7 +590,7 @@ async def my_middleware(request: Request, call_next):
 
 ### Core Technologies
 
-- **Python 3.11+**: Modern Python with type hints
+- **Python 3.10+**: Modern Python with type hints
 - **FastAPI**: Modern, fast web framework with automatic OpenAPI docs
 - **Pydantic**: Data validation and settings management
 - **LangChain**: LLM orchestration framework

@@ -41,6 +41,7 @@ class GristAgent:
         base_url: Optional[str] = None,
         max_iterations: Optional[int] = None,
         verbose: Optional[bool] = None,
+        enable_confirmations: bool = True,
     ):
         """
         Initialize the Grist AI Agent.
@@ -53,6 +54,7 @@ class GristAgent:
             base_url: Base URL for Grist API (defaults to settings.grist_base_url)
             max_iterations: Maximum number of tool calls allowed (defaults to settings.agent_max_iterations)
             verbose: Whether to log agent actions (defaults to settings.agent_verbose)
+            enable_confirmations: Whether to require confirmation for destructive operations (default: True)
         """
         self.document_id = document_id
         self.grist_token = grist_token
@@ -62,6 +64,7 @@ class GristAgent:
         self.current_page_id = current_page_id
         self.max_iterations = max_iterations or settings.agent_max_iterations
         self.verbose = verbose if verbose is not None else settings.agent_verbose
+        self.enable_confirmations = enable_confirmations
 
         # Create Grist service
         from app.services.grist_service import GristService
@@ -75,6 +78,14 @@ class GristAgent:
 
         # Set the service in the context for tools to access
         set_grist_service(self.grist_service)
+
+        # Create confirmation handler
+        from app.core.confirmation_handler import ConfirmationHandler
+
+        self.confirmation_handler = ConfirmationHandler(
+            grist_service=self.grist_service,
+            enabled=enable_confirmations,
+        )
 
         # Initialize LLM
         self.llm = get_llm()
@@ -141,6 +152,7 @@ class GristAgent:
 
             # Add chat history if provided
             if chat_history:
+                logger.debug(f"Loading {len(chat_history)} messages from chat history")
                 for msg in chat_history:
                     if msg["role"] == "user":
                         messages.append(HumanMessage(content=msg["content"]))
@@ -150,48 +162,105 @@ class GristAgent:
             # Add current user message
             messages.append(HumanMessage(content=user_message))
 
+            # Log user prompt
+            logger.debug("=" * 80)
+            logger.debug("USER PROMPT:")
+            logger.debug(user_message)
+            logger.debug("=" * 80)
+
             # Track intermediate steps
             intermediate_steps = []
 
             # Agent loop
             for iteration in range(self.max_iterations):
-                if self.verbose:
-                    logger.info(f"Agent iteration {iteration + 1}/{self.max_iterations}")
+                logger.debug(f"\n{'='*80}")
+                logger.debug(f"AGENT ITERATION {iteration + 1}/{self.max_iterations}")
+                logger.debug(f"{'='*80}")
 
                 # Call LLM with tools bound
+                logger.debug("Calling LLM...")
                 response = await self.llm_with_tools.ainvoke(messages)
+
+                # Log LLM response
+                if hasattr(response, "content") and response.content:
+                    logger.debug(f"LLM Response Content: {response.content[:500]}...")
+
+                logger.debug(f"LLM wants to call tools: {hasattr(response, 'tool_calls') and bool(response.tool_calls)}")
 
                 # Check if LLM wants to call tools
                 if hasattr(response, "tool_calls") and response.tool_calls:
-                    if self.verbose:
-                        logger.info(
-                            f"LLM requested {len(response.tool_calls)} tool call(s)"
-                        )
+                    logger.debug(f"LLM requested {len(response.tool_calls)} tool call(s)")
 
                     # Add AI message to conversation
                     messages.append(response)
 
                     # Execute each tool call (in parallel via asyncio)
-                    for tool_call in response.tool_calls:
+                    for idx, tool_call in enumerate(response.tool_calls):
                         tool_name = tool_call["name"]
                         tool_args = tool_call["args"]
                         tool_id = tool_call.get("id", "unknown")
 
-                        if self.verbose:
-                            logger.info(
-                                f"Executing tool: {tool_name} with args: {tool_args}"
-                            )
+                        logger.debug(f"\n--- Tool Call {idx + 1}/{len(response.tool_calls)} ---")
+                        logger.debug(f"Tool: {tool_name}")
+                        logger.debug(f"Args: {tool_args}")
+                        logger.debug(f"ID: {tool_id}")
 
                         if tool_name in self.tools_by_name:
+                            # Check if this operation requires confirmation
+                            if self.confirmation_handler.should_confirm(
+                                tool_name, tool_args
+                            ):
+                                logger.info(
+                                    f"Tool {tool_name} requires confirmation - creating request"
+                                )
+
+                                try:
+                                    # Create confirmation request
+                                    confirmation = await self.confirmation_handler.create_confirmation_request(
+                                        tool_name=tool_name,
+                                        tool_args=tool_args,
+                                        document_id=self.document_id,
+                                    )
+
+                                    logger.info(
+                                        f"Confirmation created: {confirmation.confirmation_id}"
+                                    )
+
+                                    # Return confirmation request to user
+                                    return {
+                                        "output": None,
+                                        "requires_confirmation": True,
+                                        "confirmation_request": confirmation.model_dump(),
+                                        "intermediate_steps": intermediate_steps,
+                                        "success": True,
+                                    }
+
+                                except Exception as e:
+                                    error_msg = f"Error creating confirmation: {str(e)}"
+                                    logger.error(error_msg, exc_info=True)
+
+                                    # Add error message
+                                    messages.append(
+                                        ToolMessage(
+                                            content=error_msg,
+                                            tool_call_id=tool_id,
+                                        )
+                                    )
+                                    intermediate_steps.append((tool_call, error_msg))
+                                    continue
+
                             try:
                                 # Execute the tool
+                                logger.debug(f"Executing tool: {tool_name}...")
                                 tool = self.tools_by_name[tool_name]
                                 result = await tool.ainvoke(tool_args)
 
-                                if self.verbose:
-                                    logger.info(
-                                        f"Tool {tool_name} returned: {str(result)[:200]}..."
-                                    )
+                                # Log result
+                                result_str = str(result)
+                                if len(result_str) > 500:
+                                    logger.debug(f"Tool result (truncated): {result_str[:500]}...")
+                                else:
+                                    logger.debug(f"Tool result: {result_str}")
 
                                 # Track step
                                 intermediate_steps.append((tool_call, result))
@@ -203,6 +272,7 @@ class GristAgent:
                                         tool_call_id=tool_id,
                                     )
                                 )
+                                logger.debug(f"✓ Tool {tool_name} executed successfully")
 
                             except Exception as e:
                                 error_msg = f"Error executing tool {tool_name}: {str(e)}"
@@ -232,11 +302,13 @@ class GristAgent:
 
                 else:
                     # No tool calls - this is the final answer
-                    if self.verbose:
-                        logger.info("Agent reached final answer")
+                    logger.debug(f"\n{'='*80}")
+                    logger.debug("FINAL ANSWER:")
+                    logger.debug(response.content if hasattr(response, 'content') else response)
+                    logger.debug(f"{'='*80}\n")
 
                     logger.info("Agent execution completed successfully")
-                    logger.debug(f"Intermediate steps: {len(intermediate_steps)}")
+                    logger.debug(f"Total intermediate steps: {len(intermediate_steps)}")
 
                     return {
                         "output": response.content,

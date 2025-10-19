@@ -9,8 +9,19 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Header
 
-from app.models import ChatRequest, ChatResponse, HealthResponse, ToolCall, UIMessage
+from app.models import (
+    ChatRequest,
+    ChatResponse,
+    ConfirmationDecision,
+    ConfirmationResponse,
+    ConfirmationStatus,
+    HealthResponse,
+    ToolCall,
+    UIMessage,
+)
 from app.core.agent import GristAgent
+from app.services.confirmation_service import get_confirmation_service
+from app.core.tools import get_all_tools, set_grist_service
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +105,19 @@ async def chat(
                 user_message=user_text,
                 chat_history=chat_history,
             )
+
+            # Check if confirmation is required
+            if result.get("requires_confirmation"):
+                logger.info("Operation requires user confirmation")
+
+                from app.models import settings
+
+                return ChatResponse(
+                    response=None,
+                    requires_confirmation=True,
+                    confirmation_request=result.get("confirmation_request"),
+                    agent_used=settings.openai_model,
+                )
 
             # Extract SQL query from tool calls if present
             sql_query = _extract_sql_query(result.get("intermediate_steps", []))
@@ -208,6 +232,122 @@ def _format_tool_calls(intermediate_steps: List[tuple]) -> List[ToolCall]:
             )
 
     return tool_calls
+
+
+@router.post("/chat/confirm", response_model=ConfirmationResponse)
+async def confirm_operation(
+    decision: ConfirmationDecision,
+    x_api_key: str = Header(..., description="Grist access token"),
+) -> ConfirmationResponse:
+    """
+    Confirm or reject a pending destructive operation.
+
+    This endpoint is called after the user reviews a confirmation request
+    from the /chat endpoint and decides whether to proceed.
+
+    Args:
+        decision: User's decision (approved or rejected)
+        x_api_key: Grist access token from header
+
+    Returns:
+        ConfirmationResponse with operation result if approved
+
+    Raises:
+        HTTPException: If confirmation not found or expired
+    """
+    logger.info(
+        f"Received confirmation decision for {decision.confirmation_id}: "
+        f"{'approved' if decision.approved else 'rejected'}"
+    )
+
+    confirmation_service = get_confirmation_service()
+
+    if not decision.approved:
+        # User rejected the operation
+        success = confirmation_service.reject_confirmation(decision.confirmation_id)
+        if not success:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Confirmation {decision.confirmation_id} not found or already processed",
+            )
+
+        return ConfirmationResponse(
+            confirmation_id=decision.confirmation_id,
+            status=ConfirmationStatus.REJECTED,
+            message="Operation cancelled by user",
+        )
+
+    # User approved - execute the operation
+    confirmation_request = confirmation_service.approve_confirmation(
+        decision.confirmation_id
+    )
+
+    if confirmation_request is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Confirmation {decision.confirmation_id} not found or expired",
+        )
+
+    # Execute the tool
+    from app.services.grist_service import GristService
+    from app.models import settings
+
+    # Create Grist service with the access token and correct base URL
+    grist_service = GristService(
+        document_id=confirmation_request.tool_args.get("document_id", "unknown"),
+        access_token=x_api_key,
+        base_url=settings.grist_base_url,  # Use the correct base URL
+    )
+
+    # Set for tools to use
+    set_grist_service(grist_service)
+
+    # Find and execute the tool
+    tools = get_all_tools()
+    tool = next(
+        (t for t in tools if t.name == confirmation_request.tool_name), None
+    )
+
+    if tool is None:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Tool {confirmation_request.tool_name} not found",
+        )
+
+    logger.info(
+        f"Executing confirmed operation: {confirmation_request.tool_name}"
+    )
+
+    try:
+        # Execute the tool
+        result = await tool.ainvoke(confirmation_request.tool_args)
+
+        # Cleanup
+        await grist_service.close()
+
+        logger.info(
+            f"Confirmed operation {confirmation_request.tool_name} executed successfully"
+        )
+
+        return ConfirmationResponse(
+            confirmation_id=decision.confirmation_id,
+            status=ConfirmationStatus.APPROVED,
+            message=f"Operation completed successfully: {confirmation_request.preview.description}",
+            result=result,
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Error executing confirmed operation: {str(e)}", exc_info=True
+        )
+        # Cleanup even on error
+        await grist_service.close()
+
+        return ConfirmationResponse(
+            confirmation_id=decision.confirmation_id,
+            status=ConfirmationStatus.APPROVED,
+            message=f"Operation failed: {str(e)}",
+        )
 
 
 # TODO: Add more endpoints

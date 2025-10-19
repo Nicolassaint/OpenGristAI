@@ -207,6 +207,323 @@ class TestChatEndpoint:
 
 
 @pytest.mark.integration
+class TestConfirmEndpoint:
+    """Tests for /chat/confirm endpoint."""
+
+    @pytest.fixture(autouse=True)
+    def setup_and_cleanup(self):
+        """Clear confirmation service before and after each test."""
+        from app.services.confirmation_service import get_confirmation_service
+
+        service = get_confirmation_service()
+        service.clear_all()
+        yield
+        service.clear_all()
+
+    def test_confirm_operation_reject(self, api_client, sample_headers):
+        """Test rejecting a confirmation."""
+        from app.models import (
+            ConfirmationDecision,
+            ConfirmationStatus,
+            OperationPreview,
+            OperationType,
+        )
+        from app.services.confirmation_service import get_confirmation_service
+
+        # Create a pending confirmation
+        service = get_confirmation_service()
+        preview = OperationPreview(
+            operation_type=OperationType.DELETE_RECORDS,
+            description="Delete 5 records",
+            affected_count=5,
+            warnings=["Irreversible"],
+            is_reversible=False,
+        )
+
+        confirmation = service.create_confirmation(
+            operation_type=OperationType.DELETE_RECORDS,
+            tool_name="remove_records",
+            tool_args={"table_id": "Students", "record_ids": [1, 2, 3, 4, 5]},
+            preview=preview,
+        )
+
+        # Reject it
+        decision = ConfirmationDecision(
+            confirmation_id=confirmation.confirmation_id,
+            approved=False,
+            reason="Changed my mind",
+        )
+
+        response = api_client.post(
+            "/chat/confirm",
+            json=decision.model_dump(),
+            headers=sample_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == ConfirmationStatus.REJECTED
+        assert "cancelled" in data["message"].lower()
+
+        # Should be removed from pending
+        assert service.get_pending_count() == 0
+
+    @patch("app.api.routes.get_all_tools")
+    def test_confirm_operation_approve(
+        self, mock_get_tools, api_client, sample_headers
+    ):
+        """Test approving and executing a confirmation."""
+        from app.models import (
+            ConfirmationDecision,
+            ConfirmationStatus,
+            OperationPreview,
+            OperationType,
+        )
+        from app.services.confirmation_service import get_confirmation_service
+
+        # Create a pending confirmation
+        service = get_confirmation_service()
+        preview = OperationPreview(
+            operation_type=OperationType.DELETE_RECORDS,
+            description="Delete 2 records",
+            affected_count=2,
+            warnings=["Irreversible"],
+            is_reversible=False,
+        )
+
+        confirmation = service.create_confirmation(
+            operation_type=OperationType.DELETE_RECORDS,
+            tool_name="remove_records",
+            tool_args={
+                "table_id": "Students",
+                "record_ids": [1, 2],
+                "document_id": "test-doc",
+            },
+            preview=preview,
+        )
+
+        # Mock the tool
+        mock_tool = AsyncMock()
+        mock_tool.name = "remove_records"
+        mock_tool.ainvoke = AsyncMock(return_value={"deleted_count": 2})
+        mock_get_tools.return_value = [mock_tool]
+
+        # Approve it
+        decision = ConfirmationDecision(
+            confirmation_id=confirmation.confirmation_id,
+            approved=True,
+        )
+
+        response = api_client.post(
+            "/chat/confirm",
+            json=decision.model_dump(),
+            headers=sample_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == ConfirmationStatus.APPROVED
+        assert "completed successfully" in data["message"].lower()
+        assert data["result"]["deleted_count"] == 2
+
+        # Should be removed from pending
+        assert service.get_pending_count() == 0
+
+        # Tool should have been called
+        mock_tool.ainvoke.assert_called_once()
+
+    def test_confirm_operation_not_found(self, api_client, sample_headers):
+        """Test confirming non-existent confirmation."""
+        from app.models import ConfirmationDecision
+
+        decision = ConfirmationDecision(
+            confirmation_id="conf_doesnotexist",
+            approved=True,
+        )
+
+        response = api_client.post(
+            "/chat/confirm",
+            json=decision.model_dump(),
+            headers=sample_headers,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in response.json()["detail"].lower()
+
+    def test_confirm_operation_expired(self, api_client, sample_headers):
+        """Test confirming expired confirmation."""
+        from app.models import (
+            ConfirmationDecision,
+            OperationPreview,
+            OperationType,
+        )
+        from app.services.confirmation_service import get_confirmation_service
+
+        # Create a confirmation that expires immediately
+        service = get_confirmation_service()
+        preview = OperationPreview(
+            operation_type=OperationType.DELETE_RECORDS,
+            description="Delete records",
+            affected_count=1,
+            warnings=[],
+            is_reversible=False,
+        )
+
+        confirmation = service.create_confirmation(
+            operation_type=OperationType.DELETE_RECORDS,
+            tool_name="remove_records",
+            tool_args={},
+            preview=preview,
+            expires_in_seconds=0,  # Expire immediately
+        )
+
+        # Try to approve
+        decision = ConfirmationDecision(
+            confirmation_id=confirmation.confirmation_id,
+            approved=True,
+        )
+
+        response = api_client.post(
+            "/chat/confirm",
+            json=decision.model_dump(),
+            headers=sample_headers,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found or expired" in response.json()["detail"].lower()
+
+    def test_confirm_operation_reject_not_found(self, api_client, sample_headers):
+        """Test rejecting non-existent confirmation."""
+        from app.models import ConfirmationDecision
+
+        decision = ConfirmationDecision(
+            confirmation_id="conf_doesnotexist",
+            approved=False,
+        )
+
+        response = api_client.post(
+            "/chat/confirm",
+            json=decision.model_dump(),
+            headers=sample_headers,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @patch("app.api.routes.get_all_tools")
+    def test_confirm_operation_tool_not_found(
+        self, mock_get_tools, api_client, sample_headers
+    ):
+        """Test approving when tool doesn't exist."""
+        from app.models import (
+            ConfirmationDecision,
+            OperationPreview,
+            OperationType,
+        )
+        from app.services.confirmation_service import get_confirmation_service
+
+        service = get_confirmation_service()
+        preview = OperationPreview(
+            operation_type=OperationType.DELETE_RECORDS,
+            description="Delete records",
+            affected_count=1,
+            warnings=[],
+            is_reversible=False,
+        )
+
+        confirmation = service.create_confirmation(
+            operation_type=OperationType.DELETE_RECORDS,
+            tool_name="nonexistent_tool",
+            tool_args={"document_id": "test"},
+            preview=preview,
+        )
+
+        # Mock no tools found
+        mock_get_tools.return_value = []
+
+        decision = ConfirmationDecision(
+            confirmation_id=confirmation.confirmation_id,
+            approved=True,
+        )
+
+        response = api_client.post(
+            "/chat/confirm",
+            json=decision.model_dump(),
+            headers=sample_headers,
+        )
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert "not found" in response.json()["detail"].lower()
+
+    @patch("app.api.routes.get_all_tools")
+    def test_confirm_operation_tool_execution_error(
+        self, mock_get_tools, api_client, sample_headers
+    ):
+        """Test handling tool execution errors."""
+        from app.models import (
+            ConfirmationDecision,
+            ConfirmationStatus,
+            OperationPreview,
+            OperationType,
+        )
+        from app.services.confirmation_service import get_confirmation_service
+
+        service = get_confirmation_service()
+        preview = OperationPreview(
+            operation_type=OperationType.DELETE_RECORDS,
+            description="Delete records",
+            affected_count=1,
+            warnings=[],
+            is_reversible=False,
+        )
+
+        confirmation = service.create_confirmation(
+            operation_type=OperationType.DELETE_RECORDS,
+            tool_name="remove_records",
+            tool_args={"table_id": "Students", "document_id": "test"},
+            preview=preview,
+        )
+
+        # Mock tool that raises error
+        mock_tool = AsyncMock()
+        mock_tool.name = "remove_records"
+        mock_tool.ainvoke = AsyncMock(side_effect=Exception("Database error"))
+        mock_get_tools.return_value = [mock_tool]
+
+        decision = ConfirmationDecision(
+            confirmation_id=confirmation.confirmation_id,
+            approved=True,
+        )
+
+        response = api_client.post(
+            "/chat/confirm",
+            json=decision.model_dump(),
+            headers=sample_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == ConfirmationStatus.APPROVED
+        assert "failed" in data["message"].lower()
+
+    def test_confirm_operation_missing_api_key(self, api_client):
+        """Test endpoint requires API key."""
+        from app.models import ConfirmationDecision
+
+        decision = ConfirmationDecision(
+            confirmation_id="conf_test",
+            approved=True,
+        )
+
+        response = api_client.post(
+            "/chat/confirm",
+            json=decision.model_dump(),
+        )
+
+        # Should fail without x-api-key header
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.integration
 class TestRootEndpoint:
     """Tests for root endpoint."""
 
