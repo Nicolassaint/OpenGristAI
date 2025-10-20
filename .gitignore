@@ -207,6 +207,9 @@ typings/
 .nuxt
 dist
 
+# SvelteKit build / generate output
+.svelte-kit
+
 # Gatsby files
 .cache/
 public

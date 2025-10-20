@@ -1,11 +1,27 @@
 version: '3.8'
 
+# ============================================================================
+# OpenGristAI - Development Docker Compose
+# ============================================================================
+#
+# Pour le développement local avec hot-reload.
+# Build les images localement et monte les volumes pour le live-reload.
+#
+# USAGE:
+#   docker-compose up -d
+#
+# Pour la production avec images Docker Hub, utilisez:
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# ============================================================================
+
 services:
   # 🔧 Backend API (FastAPI)
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
+      target: backend-dev
     container_name: opengristai-backend
     ports:
       - "8000:8000"
@@ -27,23 +43,18 @@ services:
       - ./backend/tests:/app/tests
     command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # 🎨 Frontend Widget (SvelteKit)
+  # 🎨 Frontend Widget (SvelteKit) - Dev Mode Only
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: node:18-alpine
     container_name: opengristai-frontend
+    working_dir: /app
     ports:
       - "5173:5173"
     environment:
-      # Backend API URL (use 'backend' hostname inside Docker network)
       PUBLIC_CHAT_URL: http://backend:8000/api/v1/chat
-
-      # Development
       NODE_ENV: development
     depends_on:
       - backend
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/static:/app/static
-    command: npm run dev -- --host 0.0.0.0
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"

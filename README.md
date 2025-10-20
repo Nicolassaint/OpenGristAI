@@ -17,11 +17,9 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-2.16-FF3E00.svg)](https://kit.svelte.dev)
-[![LangChain](https://img.shields.io/badge/🦜🔗_LangChain-0.3-green.svg)](https://python.langchain.com)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
 *Interagissez avec vos documents [Grist](https://www.getgrist.com) en langage naturel*
-
-[Documentation](docs/) • [Installation](#-installation-rapide) • [Démo](#-exemples) • [Contributing](#-contributing)
 
 </div>
 
@@ -50,81 +48,69 @@ OpenGristAI est un assistant IA open source complet qui permet d'interagir avec 
 **Backend** : Python 3.10+ • FastAPI • LangChain • Pydantic • httpx • PostgreSQL • Redis  
 **Frontend** : SvelteKit 2.x • TypeScript • TailwindCSS • AI SDK
 
-## 📦 Installation Rapide
+## 🚀 Installation
 
-### 🐳 Avec Docker (recommandé pour utilisateurs)
+### Docker (Recommandé)
 
 ```bash
-# Cloner le repo
+docker run -d \
+  -p 8000:8000 \
+  -e OPENAI_API_KEY=your_openai_api_key \
+  --name opengristai \
+  nicolassaint/opengristai:latest
+```
+
+Accédez à http://localhost:8000
+
+**Variables d'environnement** :
+- `OPENAI_API_KEY` - Votre clé OpenAI (obligatoire)
+- `OPENAI_BASE_URL` - URL du serveur OpenAI (défaut: `https://api.openai.com/v1`)
+- `OPENAI_MODEL` - Modèle à utiliser (défaut: `gpt-4o-mini`)
+- `GRIST_BASE_URL` - URL de votre instance Grist (défaut: `https://docs.getgrist.com`)
+- `LOG_LEVEL` - Niveau de logs (défaut: `INFO`)
+
+**Exemple complet** :
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -e OPENAI_API_KEY=sk-proj-... \
+  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
+  -e OPENAI_MODEL=gpt-4o-mini \
+  -e GRIST_BASE_URL=https://grist.numerique.gouv.fr \
+  -e LOG_LEVEL=INFO \
+  --name opengristai \
+  nicolassaint/opengristai:latest
+```
+
+### Docker Compose (Développement)
+
+```bash
 git clone https://github.com/nicolassaint/OpenGristAI.git
 cd OpenGristAI
-
-# Configurer l'environnement
 cp backend/.env.example backend/.env
-# Éditer backend/.env avec vos clés API
-
-# Lancer l'ensemble
-make docker-up
-# ou: docker-compose up -d
-
-# Vérifier
-curl http://localhost:8000/api/v1/health  # Backend (note: /api/v1 prefix)
-curl http://localhost:5173                # Frontend
+# Éditer backend/.env avec votre OPENAI_API_KEY
+docker-compose up -d
 ```
 
-### 💻 Développement local (recommandé pour développeurs)
+### Installation Locale
 
-**Option 1 : Utiliser les scripts (le plus simple)**
-
-```bash
-# 1. Configurer l'environnement
-cp backend/.env.example backend/.env
-# Éditer backend/.env avec vos clés API
-
-# 2. Installer les dépendances
-make install
-# ou manuellement:
-#   pip install -r backend/requirements.txt
-#   cd frontend && npm install
-
-# 3. Lancer le backend (terminal 1)
-# Activez d'abord votre environnement Python (conda, venv, etc.)
-conda activate your-env  # ou: source venv/bin/activate
-make dev-backend
-# ou: ./scripts/dev-backend.sh
-
-# 4. Lancer le frontend (terminal 2)
-make dev-frontend
-# ou: ./scripts/dev-frontend.sh
-```
-
-**Option 2 : Commandes manuelles**
+<details>
+<summary>Cliquez pour voir les instructions</summary>
 
 ```bash
-# Backend (terminal 1)
+# Backend
 cd backend
-# Activez votre environnement Python préféré
-conda activate your-env  # ou venv, pyenv, etc.
 pip install -r requirements.txt
-uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+cp .env.example .env
+# Éditer .env
+uvicorn app.api.main:app --reload
 
-# Frontend (terminal 2)
+# Frontend (nouveau terminal)
 cd frontend
 npm install
 npm run dev
 ```
-
-**Option 3 : Mix Docker + Local**
-
-```bash
-# Frontend via Docker
-docker-compose up -d frontend
-
-# Backend en local (pour debug intensif)
-conda activate your-env
-cd backend
-uvicorn app.api.main:app --reload
-```
+</details>
 
 ## 🏗 Architecture du Monorepo
 
@@ -147,18 +133,11 @@ OpenGristAI/
 └── 📄 README.md                  # Ce fichier
 ```
 
-## 🚀 Utilisation
+## 💬 Utilisation
 
-### 1. Backend API
+**API Backend** : `http://localhost:8000/docs` pour la documentation interactive
 
-**Base URL** : `http://localhost:8000/api/v1`
-
-**Endpoints disponibles** :
-- `GET /api/v1/health` - Health check
-- `POST /api/v1/chat` - Chat avec l'agent IA
-- `POST /api/v1/chat/confirm` - Confirmer une opération destructive
-
-**Exemple** :
+**Exemple de requête** :
 ```bash
 curl -X POST http://localhost:8000/api/v1/chat \
   -H "Content-Type: application/json" \
@@ -166,17 +145,11 @@ curl -X POST http://localhost:8000/api/v1/chat \
   -d '{
     "messages": [{
       "role": "user",
-      "parts": [{"type": "text", "text": "Combien d'employés par département ?"}]
+      "parts": [{"type": "text", "text": "Quelles tables sont dans mon document ?"}]
     }],
     "documentId": "your-doc-id"
   }'
 ```
-
-### 2. Frontend Widget
-
-1. **Développement** : `http://localhost:5173`
-2. **Intégration Grist** : Ajouter comme Custom Widget
-3. **Authentification** : Automatique via token Grist
 
 ## 🛠 Outils Disponibles
 
@@ -220,12 +193,12 @@ make help           # Affiche toutes les commandes disponibles
 make install        # Installe toutes les dépendances (backend + frontend)
 
 # Développement local
-make dev-backend    # Lance le backend (nécessite Python env activé)
+make dev-backend    # Lance le backend
 make dev-frontend   # Lance le frontend
 
-# Docker
-make docker-up      # Lance tout via Docker
-make docker-down    # Arrête tous les conteneurs
+# Docker Compose
+make docker-up      # Lance avec Docker
+make docker-down    # Arrête les conteneurs
 make docker-logs    # Affiche les logs
 
 # Tests
@@ -275,19 +248,12 @@ npm run lint            # ESLint
 npm run format          # Prettier
 ```
 
-📖 **Guide complet des tests** : Consultez [backend/tests/README.md](backend/tests/README.md) pour des instructions détaillées sur :
-- Structure des tests
-- Utilisation des fixtures
-- Tests avec API réelle
-- Configuration et bonnes pratiques
 
 ## 📖 Documentation
 
 - 📚 **[Architecture Backend](backend/README.md)** • API FastAPI et agents IA
 - 🎨 **[Frontend Widget](frontend/README.md)** • Interface SvelteKit
-- 🧪 **[Guide des Tests](backend/tests/README.md)** • Tests unitaires et d'intégration
-- 🔗 **[Intégration Grist](docs/INTEGRATION.md)** • Guide d'intégration
-- 🚀 **[Déploiement](docs/DEPLOYMENT.md)** • Production et Docker
+- 🧪 **[Tests](backend/tests/README.md)** • Guide des tests
 
 ## 🤝 Contributing
 
@@ -304,14 +270,6 @@ Contributions bienvenues ! Pour contribuer :
 - Suivre le style de code existant (black + ruff pour Python, prettier + eslint pour JS/TS)
 - Mettre à jour la documentation si nécessaire
 
-## 🗺 Roadmap
-
-- [x] **Phase 1** - Foundation (Backend API + 5 outils essentiels)
-- [x] **Phase 2** - Frontend (Widget SvelteKit + intégration Grist)
-- [x] **Phase 3** - Robustness (Validation + confirmations)
-- [ ] **Phase 4** - Intelligence (Mémorisation + contexte)
-- [ ] **Phase 5** - Monitoring (Observabilité + métriques)
-- [ ] **Phase 6** - Scale (Streaming + parallélisation + cache)
 
 ## 📄 Licence
 

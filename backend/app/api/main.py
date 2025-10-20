@@ -7,10 +7,12 @@ Entry point for the Grist AI Assistant API.
 import logging
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import colorlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.models import settings
 from app.api.routes import router
@@ -131,22 +133,29 @@ register_exception_handlers(app)
 
 
 # ============================================================================
-# Root Endpoint
+# Serve Frontend (Production)
 # ============================================================================
 
-
-@app.get("/")
-async def root():
-    """Root endpoint with API information."""
-    return {
-        "name": "Grist AI Assistant API",
-        "version": "0.1.0",
-        "environment": settings.environment,
-        "model": settings.openai_model,
-        "docs": "/docs",
-        "health": "/api/v1/health",
-        "chat": "/api/v1/chat",
-    }
+# Check if frontend static files exist (production mode)
+static_dir = Path(__file__).parent.parent.parent / "static"
+if static_dir.exists():
+    logger.info(f"📦 Serving frontend from {static_dir}")
+    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="frontend")
+else:
+    logger.warning("⚠️  Frontend static files not found - API only mode")
+    
+    @app.get("/")
+    async def root():
+        """Root endpoint with API information (dev mode)."""
+        return {
+            "name": "Grist AI Assistant API",
+            "version": "0.1.0",
+            "environment": settings.environment,
+            "model": settings.openai_model,
+            "docs": "/docs",
+            "health": "/api/v1/health",
+            "chat": "/api/v1/chat",
+        }
 
 
 # ============================================================================

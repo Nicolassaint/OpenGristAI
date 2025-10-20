@@ -1,0 +1,76 @@
+# ============================================================================
+# OpenGristAI - Docker Ignore
+# ============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# CI/CD
+.github/
+
+# Docker
+docker-compose.yml
+.dockerignore
+
+# Environment files
+.env
+.env.*
+
+# ============================================================================
+# Backend
+# ============================================================================
+
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.py[cod]
+backend/**/*.py[cod]
+backend/venv/
+backend/env/
+backend/.venv
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/*.egg-info/
+backend/tests/
+
+# Backend .env (keep .env.example)
+backend/.env
+
+# ============================================================================
+# Frontend
+# ============================================================================
+
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/
+frontend/.env
+
+# ============================================================================
+# IDE & OS
+# ============================================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================================================
+# Misc
+# ============================================================================
+
+.cache/
+tmp/
+temp/
+scripts/
+Makefile
+CHANGELOG.md
+CONTRIBUTING.md
