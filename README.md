@@ -94,6 +94,23 @@ make dev-frontend   # Terminal 2
 ```
 </details>
 
+## 📋 Intégration à Grist
+
+Une fois OpenGristAI lancé, vous pouvez l'utiliser dans vos documents Grist :
+
+1. **Ouvrez votre document Grist**
+2. Cliquez sur **Add New** (en haut à gauche)
+3. Sélectionnez **Add Widget to Page**
+4. Choisissez **Custom Widget**
+5. Sélectionnez la **table** que vous souhaitez lier à l'assistant
+6. Cliquez sur **Add to Page**
+7. Dans la configuration du widget :
+   - **Custom URL** : `http://localhost:8000` (ou l'URL où OpenGristAI est hébergé)
+8. Cliquez sur **Add Widget**
+
+
+L'assistant IA est maintenant prêt à interagir avec votre document !
+
 ## 🛠 Outils Disponibles
 
 OpenGristAI dispose de **13 outils** organisés en 5 catégories :
@@ -146,7 +163,7 @@ make test-backend   # Tests backend (pytest)
 make test-frontend  # Type checking frontend
 ```
 
-Voir [backend/README.md](backend/README.md) et [Tests](backend/tests/README.md) pour les détails sur les tests unitaires, d'intégration et de couverture.
+Voir [Tests](backend/tests/README.md) pour les détails sur les tests unitaires, d'intégration et de couverture.
 
 
 ## 📖 Documentation
