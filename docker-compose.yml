@@ -1,39 +1,6 @@
 version: '3.8'
 
 services:
-  # 🗄️ Base de données PostgreSQL
-  postgres:
-    image: postgres:16-alpine
-    container_name: opengristai-postgres
-    environment:
-      POSTGRES_USER: grist_ai
-      POSTGRES_PASSWORD: grist_ai_dev_password
-      POSTGRES_DB: grist_ai_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U grist_ai"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # 🔄 Cache Redis
-  redis:
-    image: redis:7-alpine
-    container_name: opengristai-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    command: redis-server --appendonly yes
-
   # 🔧 Backend API (FastAPI)
   backend:
     build:
@@ -43,26 +10,18 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Database
-      DATABASE_URL: postgresql://grist_ai:grist_ai_dev_password@postgres:5432/grist_ai_db
-
-      # Redis
-      REDIS_URL: redis://redis:6379/0
-
-      # OpenAI Configuration
+      # OpenAI Configuration (required)
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
 
-      # Application
-      ENVIRONMENT: development
-      LOG_LEVEL: DEBUG
+      # Grist Configuration (optional - defaults to docs.getgrist.com)
+      GRIST_BASE_URL: ${GRIST_BASE_URL:-https://docs.getgrist.com}
 
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      # Application
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
     volumes:
       - ./backend/app:/app/app
       - ./backend/tests:/app/tests
@@ -77,9 +36,9 @@ services:
     ports:
       - "5173:5173"
     environment:
-      # Backend API URL
-      PUBLIC_CHAT_URL: http://localhost:8000/api/v1/chat
-      
+      # Backend API URL (use 'backend' hostname inside Docker network)
+      PUBLIC_CHAT_URL: http://backend:8000/api/v1/chat
+
       # Development
       NODE_ENV: development
     depends_on:
@@ -88,7 +47,3 @@ services:
       - ./frontend/src:/app/src
       - ./frontend/static:/app/static
     command: npm run dev -- --host 0.0.0.0
-
-volumes:
-  postgres_data:
-  redis_data:

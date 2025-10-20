@@ -68,7 +68,7 @@ make docker-up
 # ou: docker-compose up -d
 
 # Vérifier
-curl http://localhost:8000/api/v1/health  # Backend
+curl http://localhost:8000/api/v1/health  # Backend (note: /api/v1 prefix)
 curl http://localhost:5173                # Frontend
 ```
 
@@ -151,8 +151,14 @@ OpenGristAI/
 
 ### 1. Backend API
 
-**Endpoint principal** : `POST /api/v1/chat`
+**Base URL** : `http://localhost:8000/api/v1`
 
+**Endpoints disponibles** :
+- `GET /api/v1/health` - Health check
+- `POST /api/v1/chat` - Chat avec l'agent IA
+- `POST /api/v1/chat/confirm` - Confirmer une opération destructive
+
+**Exemple** :
 ```bash
 curl -X POST http://localhost:8000/api/v1/chat \
   -H "Content-Type: application/json" \
@@ -194,10 +200,14 @@ Voir `backend/.env.example` pour la configuration complète.
 
 ### Frontend (SvelteKit)
 
+Créez `frontend/.env` :
+
 ```env
-# frontend/.env
+# Backend API URL
 PUBLIC_CHAT_URL='http://localhost:8000/api/v1/chat'
 ```
+
+**Note** : Avec Docker Compose, utilisez `http://backend:8000/api/v1/chat` pour la communication inter-conteneurs.
 
 ## 🧪 Développement
 

@@ -123,8 +123,8 @@ app.add_middleware(
 # Routes
 # ============================================================================
 
-# Main routes (no prefix - front-end expects /chat directly)
-app.include_router(router)
+# API v1 routes with versioning prefix
+app.include_router(router, prefix="/api/v1")
 
 # Register exception handlers
 register_exception_handlers(app)
@@ -144,8 +144,8 @@ async def root():
         "environment": settings.environment,
         "model": settings.openai_model,
         "docs": "/docs",
-        "health": "/health",
-        "chat": "/chat",
+        "health": "/api/v1/health",
+        "chat": "/api/v1/chat",
     }
 
 
