@@ -1,0 +1,51 @@
+version: '3.8'
+
+# ============================================================================
+# OpenGristAI - Production Docker Compose
+# ============================================================================
+#
+# Utilise l'image précompilée depuis Docker Hub (nicolassaint/opengristai)
+# Idéal pour les utilisateurs finaux qui veulent simplement lancer l'application.
+#
+# USAGE:
+#   1. Créer un fichier .env avec vos variables :
+#      OPENAI_API_KEY=sk-...
+#      OPENAI_MODEL=gpt-4o-mini
+#      GRIST_BASE_URL=https://docs.getgrist.com
+#
+#   2. Lancer :
+#      docker-compose -f docker-compose.prod.yml up -d
+#
+#   3. Accéder à http://localhost:8000
+#
+# ============================================================================
+
+services:
+  # 🚀 OpenGristAI (Backend + Frontend combinés)
+  opengristai:
+    image: nicolassaint/opengristai:latest
+    container_name: opengristai
+    ports:
+      - "8000:8000"
+    environment:
+      # OpenAI Configuration (required)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+
+      # Grist Configuration (optional)
+      GRIST_BASE_URL: ${GRIST_BASE_URL:-https://docs.getgrist.com}
+
+      # Application
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+    restart: unless-stopped
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

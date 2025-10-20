@@ -8,102 +8,67 @@
 
 ## 🏠 Développement Local
 
-### Option 1 : Script Automatisé (Recommandé)
+### Docker Compose (Recommandé)
+
+```bash
+git clone https://github.com/nicolassaint/OpenGristAI.git
+cd OpenGristAI
+
+# Lancer avec hot-reload
+docker-compose up -d
+
+# Vérifier
+curl http://localhost:8000/api/v1/health
+```
+
+### Manuel
+
+```bash
+git clone https://github.com/nicolassaint/OpenGristAI.git
+cd OpenGristAI
+
+# Installer les dépendances
+make install
+
+# Lancer le développement
+make dev-backend    # Terminal 1
+make dev-frontend   # Terminal 2
+```
+
+## 🏭 Production
+
+### Docker Compose (Recommandé)
 
 ```bash
 # Cloner le projet
 git clone https://github.com/nicolassaint/OpenGristAI.git
 cd OpenGristAI
 
-# Lancer le développement complet
-./scripts/dev.sh
-```
+# Créer un fichier .env
+cp .env.example .env
+# Éditer .env avec vos clés de production
 
-Le script va :
-- ✅ Vérifier les prérequis
-- ✅ Configurer les environnements
-- ✅ Installer les dépendances
-- ✅ Lancer backend + frontend
-- ✅ Tester la connectivité
-
-### Option 2 : Docker Compose
-
-```bash
-# Configuration
-cp backend/.env.example backend/.env
-# Éditer backend/.env avec vos clés API
-
-# Lancer tous les services
-docker-compose up -d
-
-# Vérifier
-curl http://localhost:8000/api/v1/health  # Backend
-curl http://localhost:5173                # Frontend
-```
-
-### Option 3 : Manuel
-
-```bash
-# Backend
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.api.main:app --host 0.0.0.0 --port 8000
-
-# Frontend (nouveau terminal)
-cd frontend
-npm install
-npm run dev
-```
-
-## 🏭 Production
-
-### Variables d'Environnement
-
-```bash
-# backend/.env.production
-ENVIRONMENT=production
-LOG_LEVEL=WARNING
-OPENAI_API_KEY=your-production-key
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-4o-mini
-CORS_ORIGINS=https://yourdomain.com
-```
-
-### Docker Compose
-
-```yaml
-# docker-compose.prod.yml
-version: '3.8'
-
-services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      - ENVIRONMENT=production
-    restart: unless-stopped
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - PUBLIC_CHAT_URL=https://api.yourdomain.com/api/v1/chat
-    restart: unless-stopped
-```
-
-### Déploiement
-
-```bash
 # Lancer en production
 docker-compose -f docker-compose.prod.yml up -d
 
 # Vérifier
 curl http://localhost:8000/api/v1/health
-curl http://localhost:5173
+```
+
+### Docker Run
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -e OPENAI_API_KEY=sk-proj-... \
+  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
+  -e OPENAI_MODEL=gpt-4o-mini \
+  -e GRIST_BASE_URL=https://docs.getgrist.com \
+  -e LOG_LEVEL=WARNING \
+  -e ENVIRONMENT=production \
+  --restart unless-stopped \
+  --name opengristai \
+  nicolassaint/opengristai:latest
 ```
 
 Pour un déploiement cloud (AWS, GCP, DigitalOcean), consulter la documentation officielle de ces plateformes.

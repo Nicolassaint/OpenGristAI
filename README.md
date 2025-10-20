@@ -33,10 +33,33 @@ OpenGristAI est un assistant IA open source qui permet d'interagir avec vos docu
 
 ### Docker (Recommandé)
 
+**Option 1 : Docker Compose (Recommandé)**
+
+```bash
+# Cloner le projet
+git clone https://github.com/nicolassaint/OpenGristAI.git
+cd OpenGristAI
+
+# Créer un fichier .env
+cp .env.example .env
+# Éditer .env avec votre vos variables
+
+# Lancer en production
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+**Option 2 : Docker Run**
+
 ```bash
 docker run -d \
   -p 8000:8000 \
-  -e OPENAI_API_KEY=your_openai_api_key \
+  -e OPENAI_API_KEY=sk-proj-... \
+  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
+  -e OPENAI_MODEL=gpt-4o-mini \
+  -e GRIST_BASE_URL=https://grist.numerique.gouv.fr \
+  -e LOG_LEVEL=INFO \
+  -e ENVIRONMENT=production \
+  --restart unless-stopped \
   --name opengristai \
   nicolassaint/opengristai:latest
 ```
@@ -50,46 +73,24 @@ Accédez à http://localhost:8000
 - `GRIST_BASE_URL` - URL de votre instance Grist (défaut: `https://docs.getgrist.com`, DINUM: `https://grist.numerique.gouv.fr`)
 - `LOG_LEVEL` - Niveau de logs (défaut: `INFO`)
 
-**Exemple complet** :
-```bash
-docker run -d \
-  -p 8000:8000 \
-  -e OPENAI_API_KEY=sk-proj-... \
-  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
-  -e OPENAI_MODEL=gpt-4o-mini \
-  -e GRIST_BASE_URL=https://grist.numerique.gouv.fr \
-  -e LOG_LEVEL=INFO \
-  --name opengristai \
-  nicolassaint/opengristai:latest
-```
-
-### Docker Compose (Développement)
-
-```bash
-git clone https://github.com/nicolassaint/OpenGristAI.git
-cd OpenGristAI
-cp backend/.env.example backend/.env
-# Éditer backend/.env avec votre OPENAI_API_KEY
-docker-compose up -d
-```
-
-### Installation Locale
+### Installation Locale (Développement)
 
 <details>
 <summary>Cliquez pour voir les instructions</summary>
 
 ```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-cp .env.example .env
-# Éditer .env
-uvicorn app.api.main:app --reload
+git clone https://github.com/nicolassaint/OpenGristAI.git
+cd OpenGristAI
 
-# Frontend (nouveau terminal)
-cd frontend
-npm install
-npm run dev
+# Installer les dépendances
+make install
+
+# Lancer le développement (Docker Compose avec hot-reload)
+docker-compose up -d
+
+# Ou manuellement
+make dev-backend    # Terminal 1
+make dev-frontend   # Terminal 2
 ```
 </details>
 
