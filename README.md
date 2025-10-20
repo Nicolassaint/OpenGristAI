@@ -11,7 +11,7 @@
 
 # OpenGristAI
 
-**🤖 AI-Powered Assistant for Grist Documents**
+**🤖 AI-Powered Widget Assistant for Grist Documents**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -27,26 +27,7 @@
 
 ## 🎯 Qu'est-ce que OpenGristAI ?
 
-OpenGristAI est un assistant IA open source complet qui permet d'interagir avec vos documents Grist via une interface conversationnelle moderne. Le projet comprend :
-
-- **🔧 Backend API** : FastAPI avec 13 outils Grist et agents IA spécialisés
-- **🎨 Frontend Widget** : Interface SvelteKit moderne intégrée nativement dans Grist
-- **🤖 Intelligence** : Agents IA pour SQL, analyse et conversation naturelle
-
-### ✨ Fonctionnalités
-
-- 🇫🇷 **Interface française** • Prompts et interactions en français
-- 🤖 **13 outils Grist** • CRUD complet sur tables, colonnes et enregistrements
-- ✅ **Confirmations intelligentes** • Protection pour les opérations destructives
-- 🔐 **Authentification automatique** • Token Grist intégré, aucune config manuelle
-- 🚀 **Performance** • Architecture async avec FastAPI + SvelteKit
-- 🧪 **Testé** • Suite complète de tests unitaires et d'intégration
-- 🐳 **Production-ready** • Docker + docker-compose pour l'ensemble
-
-### 🛠 Stack
-
-**Backend** : Python 3.10+ • FastAPI • LangChain • Pydantic • httpx • PostgreSQL • Redis  
-**Frontend** : SvelteKit 2.x • TypeScript • TailwindCSS • AI SDK
+OpenGristAI est un assistant IA open source qui permet d'interagir avec vos documents Grist via un custom widget. Compatible avec n'importe quel modèle d'IA supportant le **function calling** via le protocole OpenAI (OpenAI, Anthropic, Mistral, modèles locaux via Ollama, etc.). 
 
 ## 🚀 Installation
 
@@ -63,10 +44,10 @@ docker run -d \
 Accédez à http://localhost:8000
 
 **Variables d'environnement** :
-- `OPENAI_API_KEY` - Votre clé OpenAI (obligatoire)
-- `OPENAI_BASE_URL` - URL du serveur OpenAI (défaut: `https://api.openai.com/v1`)
+- `OPENAI_API_KEY` - Votre clé API du fournisseur IA (obligatoire)
+- `OPENAI_BASE_URL` - URL du serveur API compatible OpenAI (défaut: `https://api.openai.com/v1`)
 - `OPENAI_MODEL` - Modèle à utiliser (défaut: `gpt-4o-mini`)
-- `GRIST_BASE_URL` - URL de votre instance Grist (défaut: `https://docs.getgrist.com`)
+- `GRIST_BASE_URL` - URL de votre instance Grist (défaut: `https://docs.getgrist.com`, DINUM: `https://grist.numerique.gouv.fr`)
 - `LOG_LEVEL` - Niveau de logs (défaut: `INFO`)
 
 **Exemple complet** :
@@ -112,45 +93,6 @@ npm run dev
 ```
 </details>
 
-## 🏗 Architecture du Monorepo
-
-```
-OpenGristAI/
-├── 📁 backend/                    # API FastAPI + Agents IA
-│   ├── app/                       # Code source Python
-│   ├── tests/                     # Tests unitaires
-│   ├── requirements.txt           # Dépendances Python
-│   └── Dockerfile                # Image Docker backend
-├── 📁 frontend/                   # Widget SvelteKit
-│   ├── src/                       # Code source SvelteKit
-│   ├── package.json              # Dépendances Node.js
-│   └── svelte.config.js          # Config SvelteKit
-├── 📁 docs/                      # Documentation unifiée
-├── 📁 scripts/                   # Scripts de développement
-│   ├── dev.sh                    # Lance backend + frontend
-│   └── build.sh                  # Build de production
-├── 📄 docker-compose.yml         # Déploiement complet
-└── 📄 README.md                  # Ce fichier
-```
-
-## 💬 Utilisation
-
-**API Backend** : `http://localhost:8000/docs` pour la documentation interactive
-
-**Exemple de requête** :
-```bash
-curl -X POST http://localhost:8000/api/v1/chat \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your-grist-token" \
-  -d '{
-    "messages": [{
-      "role": "user",
-      "parts": [{"type": "text", "text": "Quelles tables sont dans mon document ?"}]
-    }],
-    "documentId": "your-doc-id"
-  }'
-```
-
 ## 🛠 Outils Disponibles
 
 OpenGristAI dispose de **13 outils** organisés en 5 catégories :
@@ -184,69 +126,26 @@ PUBLIC_CHAT_URL='http://localhost:8000/api/v1/chat'
 
 ## 🧪 Développement
 
-### Commandes disponibles (Makefile)
+### Commandes de développement
 
 ```bash
 make help           # Affiche toutes les commandes disponibles
-
-# Installation
-make install        # Installe toutes les dépendances (backend + frontend)
-
-# Développement local
+make install        # Installe les dépendances
 make dev-backend    # Lance le backend
 make dev-frontend   # Lance le frontend
-
-# Docker Compose
-make docker-up      # Lance avec Docker
-make docker-down    # Arrête les conteneurs
-make docker-logs    # Affiche les logs
-
-# Tests
-make test-backend   # Teste le backend (pytest)
-make test-frontend  # Teste le frontend (type checking)
-
-# Qualité du code
-make lint-backend   # Lint Python (ruff)
-make format-backend # Format Python (black)
-make lint-frontend  # Lint TypeScript (eslint)
-make format-frontend # Format TypeScript (prettier)
-
-# Nettoyage
-make clean          # Supprime les fichiers temporaires
+make docker-up      # Lance avec Docker Compose
 ```
 
-### Tests et qualité
+Pour la liste complète des commandes (tests, lint, format, etc.), voir `make help`.
 
-**Backend** :
+### Tests
+
 ```bash
-# Via Makefile (recommandé)
-make test-backend       # Tous les tests (unit + integration mocked)
-make test-unit          # Tests unitaires seulement
-make test-integration   # Tests d'intégration (mocked)
-make test-api           # Tests avec API Grist réelle (nécessite GRIST_API_KEY)
-make test-coverage      # Tests avec rapport de couverture
-
-# Directement avec pytest
-cd backend
-pytest -v                              # Tous les tests mocked
-pytest -v -m unit                      # Tests unitaires
-pytest -v -m integration               # Tests d'intégration
-pytest -v -m requires_api              # Tests avec API réelle
-pytest --cov=app --cov-report=html     # Avec couverture
-
-# Qualité du code
-make lint-backend       # Linting (ruff)
-make format-backend     # Formatage (black)
+make test-backend   # Tests backend (pytest)
+make test-frontend  # Type checking frontend
 ```
 
-**Frontend** :
-```bash
-make test-frontend      # Type checking
-cd frontend
-npm run check           # Type checking
-npm run lint            # ESLint
-npm run format          # Prettier
-```
+Voir [backend/README.md](backend/README.md) et [Tests](backend/tests/README.md) pour les détails sur les tests unitaires, d'intégration et de couverture.
 
 
 ## 📖 Documentation
@@ -288,7 +187,5 @@ MIT License - voir [LICENSE](LICENSE) pour détails
 **Made with ❤️ for the Grist community**
 
 ⭐ Si vous aimez ce projet, donnez-lui une étoile !
-
-[Website](https://example.com) • [Documentation](docs/) • [Changelog](CHANGELOG.md)
 
 </div>

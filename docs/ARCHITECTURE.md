@@ -134,142 +134,23 @@ Le widget s'intègre nativement dans Grist via :
 
 ## 🔄 Communication Backend ↔ Frontend
 
-### API Endpoints
+### Endpoints Principaux
 
-#### `POST /api/v1/chat`
-```typescript
-// Request
-{
-  messages: Message[],
-  documentId: string,
-  currentTableId?: string,
-  currentTableName?: string
-}
+- `POST /api/v1/chat` - Envoyer un message et recevoir la réponse de l'agent
+- `POST /api/v1/chat/confirm` - Confirmer/rejeter une opération destructive
 
-// Response
-{
-  response?: string,
-  sql_query?: string,
-  tool_calls?: ToolCall[],
-  requires_confirmation?: boolean,
-  confirmation_request?: ConfirmationRequest
-}
-```
-
-#### `POST /api/v1/chat/confirm`
-```typescript
-// Request
-{
-  confirmation_id: string,
-  approved: boolean,
-  reason?: string
-}
-
-// Response
-{
-  status: "approved" | "rejected",
-  result?: any,
-  message?: string
-}
-```
-
-### Système de Confirmation
-
-Pour les opérations destructives, le système implémente un workflow de confirmation :
-
-1. **Détection** : L'agent détecte une opération destructive
-2. **Aperçu** : Génération d'un aperçu des éléments affectés
-3. **Confirmation** : Interface utilisateur pour approuver/rejeter
-4. **Exécution** : Exécution conditionnelle selon la décision
+Voir [backend README](../backend/README.md) pour les détails complets de l'API.
 
 ## 🐳 Déploiement
 
-### Développement Local
-```bash
-# Script automatisé
-./scripts/dev.sh
-
-# Ou manuellement
-docker-compose up -d
-```
-
-### Production
-```bash
-# Build complet
-./scripts/build.sh
-
-# Déploiement
-docker-compose -f docker-compose.prod.yml up -d
-```
+Voir [DEPLOYMENT.md](DEPLOYMENT.md) pour le guide complet.
 
 ## 🧪 Tests
 
-### Backend
 ```bash
-cd backend
-pytest                    # Tests unitaires
-pytest --cov=app tests/   # Avec couverture
+make test-backend   # Tests backend
+make test-frontend  # Tests frontend
 ```
 
-### Frontend
-```bash
-cd frontend
-npm run check            # TypeScript + Svelte
-npm run test             # Tests unitaires
-```
+Voir [tests/README.md](../backend/tests/README.md) pour détails.
 
-### Intégration
-```bash
-# Tests end-to-end
-docker-compose up -d
-./scripts/test-integration.sh
-```
-
-## 📊 Monitoring
-
-### Métriques Backend
-- Temps de réponse des agents
-- Taux de succès des outils Grist
-- Utilisation des modèles LLM
-
-### Métriques Frontend
-- Temps de chargement des composants
-- Taux d'erreur des requêtes API
-- Utilisation du localStorage
-
-## 🔐 Sécurité
-
-### Authentification
-- **Backend** : API Key (Grist token)
-- **Frontend** : Token automatique via Grist API
-
-### Validation
-- **Input** : Validation Pydantic côté backend
-- **Output** : Sanitisation des réponses LLM
-- **Confirmation** : Protection pour opérations destructives
-
-### Rate Limiting
-- Limite par utilisateur/document
-- Cache Redis pour optimiser les performances
-- Timeout pour les requêtes longues
-
-## 🚀 Évolutivité
-
-### Horizontal Scaling
-- Backend : Load balancer + multiple instances
-- Frontend : CDN + cache statique
-- Database : Read replicas + connection pooling
-
-### Vertical Scaling
-- Backend : Plus de CPU/RAM pour les agents IA
-- Frontend : Optimisation du bundle + lazy loading
-- Database : SSD + plus de RAM pour le cache
-
-## 📈 Roadmap Technique
-
-- [ ] **Phase 1** : Monorepo + Architecture de base ✅
-- [ ] **Phase 2** : Tests d'intégration complets
-- [ ] **Phase 3** : Monitoring et observabilité
-- [ ] **Phase 4** : Cache intelligent et optimisations
-- [ ] **Phase 5** : Support multi-tenant
-- [ ] **Phase 6** : API publique et SDK
