@@ -359,7 +359,8 @@ class GristService:
             limit: Number of sample records to return (default: 10, max: 10)
 
         Returns:
-            List of sample records with their actual field values.
+            List of sample records with their actual field values and IDs.
+            Each record includes an 'id' field for targeting specific records.
 
         Raises:
             TableNotFoundException: If table doesn't exist
@@ -377,12 +378,15 @@ class GristService:
         try:
             records = await self.client.get_records(table_id, limit=limit)
 
-            # Extract just the fields from each record (remove internal metadata)
+            # Extract fields from each record and include the ID
             samples = []
             for record in records:
                 # Grist records have structure: {"id": ..., "fields": {...}}
                 if "fields" in record:
-                    samples.append(record["fields"])
+                    # Include the ID so the LLM knows which records to target
+                    sample = record["fields"].copy()
+                    sample["id"] = record["id"]
+                    samples.append(sample)
                 else:
                     # Fallback if structure is different
                     samples.append(record)
