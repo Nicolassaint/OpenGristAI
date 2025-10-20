@@ -22,9 +22,15 @@ COPY frontend/postcss.config.js ./
 # Install dependencies
 RUN npm ci
 
+# Install adapter-static for production build
+RUN npm install -D @sveltejs/adapter-static
+
 # Copy frontend source
 COPY frontend/src ./src
 COPY frontend/static ./static
+
+# Create .env file for build (relative path since frontend is served by backend)
+RUN echo "PUBLIC_CHAT_URL=/api/v1/chat" > .env
 
 # Build frontend for production
 RUN npm run build
