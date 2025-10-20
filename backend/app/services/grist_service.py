@@ -208,10 +208,10 @@ class GristService:
         """
         logger.info(f"Adding column '{column_id}' to table '{table_id}'")
 
-        # Validate table exists
+        # Validate table exists (get corrected ID for case-insensitive match)
         validator = self._get_validator()
         if validator:
-            await validator.validate_table_exists(table_id)
+            table_id = await validator.validate_table_exists(table_id)
 
         # Validate inputs
         if not column_id or not column_id.strip():
@@ -267,11 +267,12 @@ class GristService:
         """
         logger.info(f"Updating column '{column_id}' in table '{table_id}'")
 
-        # Validate table and column exist
+        # Validate table and column exist (get corrected IDs for case-insensitive match)
         validator = self._get_validator()
         if validator:
-            await validator.validate_table_exists(table_id)
-            await validator.validate_column_exists(table_id, column_id)
+            table_id = await validator.validate_table_exists(table_id)
+            column_info = await validator.validate_column_exists(table_id, column_id)
+            column_id = column_info["id"]  # Use corrected column ID
 
         try:
             # Build fields dict with updates
@@ -323,11 +324,12 @@ class GristService:
         """
         logger.warning(f"Removing column '{column_id}' from table '{table_id}'")
 
-        # Validate table and column exist
+        # Validate table and column exist (get corrected IDs for case-insensitive match)
         validator = self._get_validator()
         if validator:
-            await validator.validate_table_exists(table_id)
-            await validator.validate_column_exists(table_id, column_id)
+            table_id = await validator.validate_table_exists(table_id)
+            column_info = await validator.validate_column_exists(table_id, column_id)
+            column_id = column_info["id"]  # Use corrected column ID
 
         try:
             await self.client.delete_column(table_id, column_id)
@@ -364,10 +366,10 @@ class GristService:
         """
         logger.info(f"Getting {limit} sample records from table '{table_id}'")
 
-        # Validate table exists
+        # Validate table exists (get corrected ID for case-insensitive match)
         validator = self._get_validator()
         if validator:
-            await validator.validate_table_exists(table_id)
+            table_id = await validator.validate_table_exists(table_id)
 
         # Enforce max limit of 10 to prevent token overflow
         limit = min(limit, 10)
@@ -453,10 +455,10 @@ class GristService:
         """
         logger.info(f"Adding {len(records)} record(s) to table '{table_id}'")
 
-        # Validate if enabled
+        # Validate if enabled (get corrected ID for case-insensitive match)
         validator = self._get_validator()
         if validator:
-            await validator.validate_table_exists(table_id)
+            table_id = await validator.validate_table_exists(table_id)
             for record in records:
                 await validator.validate_record_data(table_id, record)
 
@@ -508,10 +510,10 @@ class GristService:
                 f"Mismatch: {len(record_ids)} IDs but {len(records)} record objects",
             )
 
-        # Validate if enabled
+        # Validate if enabled (get corrected ID for case-insensitive match)
         validator = self._get_validator()
         if validator:
-            await validator.validate_table_exists(table_id)
+            table_id = await validator.validate_table_exists(table_id)
             for record in records:
                 await validator.validate_record_data(table_id, record)
 

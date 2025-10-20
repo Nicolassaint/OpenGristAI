@@ -47,12 +47,15 @@ class ValidationService:
         self._tables_cache: Optional[List[Dict[str, Any]]] = None
         self._columns_cache: Dict[str, List[Dict[str, Any]]] = {}
 
-    async def validate_table_exists(self, table_id: str) -> None:
+    async def validate_table_exists(self, table_id: str) -> str:
         """
-        Validate that a table exists.
+        Validate that a table exists (case-insensitive).
 
         Args:
             table_id: Table ID to check
+
+        Returns:
+            The correct table ID with proper casing
 
         Raises:
             TableNotFoundException: If table doesn't exist
@@ -62,29 +65,38 @@ class ValidationService:
 
         table_ids = [t["id"] for t in self._tables_cache]
 
-        if table_id not in table_ids:
-            raise TableNotFoundException(table_id, table_ids)
+        # Exact match first
+        if table_id in table_ids:
+            logger.debug(f"Table '{table_id}' validated (exact match)")
+            return table_id
 
-        logger.debug(f"Table '{table_id}' validated")
+        # Case-insensitive match
+        table_id_lower = table_id.lower()
+        for tid in table_ids:
+            if tid.lower() == table_id_lower:
+                logger.debug(f"Table '{table_id}' validated (case-insensitive match: '{tid}')")
+                return tid
+
+        raise TableNotFoundException(table_id, table_ids)
 
     async def validate_column_exists(
         self, table_id: str, column_id: str
     ) -> Dict[str, Any]:
         """
-        Validate that a column exists in a table.
+        Validate that a column exists in a table (case-insensitive).
 
         Args:
             table_id: Table ID
             column_id: Column ID to check
 
         Returns:
-            Column metadata
+            Column metadata (with corrected column ID if case-insensitive match)
 
         Raises:
             ColumnNotFoundException: If column doesn't exist
         """
-        # Ensure table exists first
-        await self.validate_table_exists(table_id)
+        # Ensure table exists first (and get correct casing)
+        table_id = await self.validate_table_exists(table_id)
 
         # Get columns (use cache)
         if table_id not in self._columns_cache:
@@ -95,14 +107,21 @@ class ValidationService:
         columns = self._columns_cache[table_id]
         column_ids = [c["id"] for c in columns]
 
-        # Find the column
+        # Exact match first
         column = next((c for c in columns if c["id"] == column_id), None)
+        if column:
+            logger.debug(f"Column '{column_id}' in table '{table_id}' validated (exact match)")
+            return column
 
-        if column is None:
-            raise ColumnNotFoundException(column_id, table_id, column_ids)
+        # Case-insensitive match
+        column_id_lower = column_id.lower()
+        for c in columns:
+            if c["id"].lower() == column_id_lower:
+                logger.debug(f"Column '{column_id}' validated (case-insensitive match: '{c['id']}')")
+                # Return column with corrected ID
+                return c
 
-        logger.debug(f"Column '{column_id}' in table '{table_id}' validated")
-        return column
+        raise ColumnNotFoundException(column_id, table_id, column_ids)
 
     async def validate_record_data(self, table_id: str, record: Dict[str, Any]) -> None:
         """
