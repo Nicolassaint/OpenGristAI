@@ -244,25 +244,48 @@ make clean          # Supprime les fichiers temporaires
 
 ### Tests et qualité
 
+**Backend** :
 ```bash
-# Backend
-cd backend
-pytest -v                       # Tests unitaires
-pytest --cov=app                # Avec couverture
-black app/ tests/               # Formatage
-ruff app/ tests/                # Linting
+# Via Makefile (recommandé)
+make test-backend       # Tous les tests (unit + integration mocked)
+make test-unit          # Tests unitaires seulement
+make test-integration   # Tests d'intégration (mocked)
+make test-api           # Tests avec API Grist réelle (nécessite GRIST_API_KEY)
+make test-coverage      # Tests avec rapport de couverture
 
-# Frontend
-cd frontend
-npm run check                   # Type checking
-npm run lint                    # ESLint
-npm run format                  # Prettier
+# Directement avec pytest
+cd backend
+pytest -v                              # Tous les tests mocked
+pytest -v -m unit                      # Tests unitaires
+pytest -v -m integration               # Tests d'intégration
+pytest -v -m requires_api              # Tests avec API réelle
+pytest --cov=app --cov-report=html     # Avec couverture
+
+# Qualité du code
+make lint-backend       # Linting (ruff)
+make format-backend     # Formatage (black)
 ```
+
+**Frontend** :
+```bash
+make test-frontend      # Type checking
+cd frontend
+npm run check           # Type checking
+npm run lint            # ESLint
+npm run format          # Prettier
+```
+
+📖 **Guide complet des tests** : Consultez [backend/tests/README.md](backend/tests/README.md) pour des instructions détaillées sur :
+- Structure des tests
+- Utilisation des fixtures
+- Tests avec API réelle
+- Configuration et bonnes pratiques
 
 ## 📖 Documentation
 
 - 📚 **[Architecture Backend](backend/README.md)** • API FastAPI et agents IA
 - 🎨 **[Frontend Widget](frontend/README.md)** • Interface SvelteKit
+- 🧪 **[Guide des Tests](backend/tests/README.md)** • Tests unitaires et d'intégration
 - 🔗 **[Intégration Grist](docs/INTEGRATION.md)** • Guide d'intégration
 - 🚀 **[Déploiement](docs/DEPLOYMENT.md)** • Production et Docker
 

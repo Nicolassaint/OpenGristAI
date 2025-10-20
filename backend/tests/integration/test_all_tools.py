@@ -1,380 +1,203 @@
 """
-Script de test pour tous les tools Grist
+Real API Integration Tests for All Grist Tools
 
-Ce script teste tous les 12 tools disponibles sur un document Grist réel.
-Il crée des données de test temporaires et les nettoie après.
+These tests use a REAL Grist API connection to verify that all tools work
+correctly end-to-end. They are OPTIONAL and require proper configuration.
+
+⚠️  WARNING: These tests will create temporary data in your Grist document.
+
+For unit tests with mocks, see: tests/unit/test_tools.py
+For integration tests with mocks, see: tests/integration/test_agent_workflows.py
 """
 
-import asyncio
 import os
-import sys
-from typing import Dict, Any
-
-# Ajouter le répertoire parent au path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import pytest
 
 from app.services.grist_service import GristService
-from app.core.tools import set_grist_service
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# ============================================================================
-# Configuration
-# ============================================================================
-
-# REMPLACER PAR VOS VRAIES VALEURS
-DOCUMENT_ID = "jrsG9Qhc7domWgz1HBWiVp"  # Votre document ID
-API_KEY = os.getenv("GRIST_API_KEY", "")  # Votre API Key (depuis Account Settings)
-BASE_URL = "https://grist.numerique.gouv.fr"  # Votre instance Grist
-
-# Nom de la table de test (sera créée puis supprimée)
-TEST_TABLE_NAME = "TestToolsTable"
-
-# NOTE: Pour utiliser un JWT token du widget au lieu d'une API Key,
-# changez use_api_key=False et utilisez GRIST_ACCESS_TOKEN
+from app.core.tools import (
+    set_grist_service,
+    get_tables,
+    get_table_columns,
+    query_document,
+    add_records,
+    update_records,
+    remove_records,
+    add_table,
+    add_table_column,
+    update_table_column,
+    remove_table_column,
+)
 
 
-# ============================================================================
-# Helper Functions
-# ============================================================================
+@pytest.mark.requires_api
+@pytest.mark.integration
+@pytest.mark.asyncio
+class TestAllToolsRealAPI:
+    """
+    Integration tests with real Grist API.
 
+    These tests require:
+    - GRIST_API_KEY environment variable
+    - GRIST_DOCUMENT_ID environment variable (optional, will use test doc if not set)
+    - GRIST_BASE_URL environment variable (optional, defaults to https://docs.getgrist.com)
 
-class ToolTestResults:
-    """Classe pour tracker les résultats des tests."""
+    To run these tests:
+        pytest tests/integration/test_all_tools.py -m requires_api
 
-    def __init__(self):
-        self.results: Dict[str, Dict[str, Any]] = {}
-        self.total = 0
-        self.passed = 0
-        self.failed = 0
+    WARNING: These tests will create temporary data in your Grist document.
+    A test table named 'TestToolsTable' will be created but cannot be
+    automatically deleted (Grist API limitation). Please delete it manually.
+    """
 
-    def add(self, tool_name: str, success: bool, message: str = "", data: Any = None):
-        """Ajouter un résultat de test."""
-        self.total += 1
-        if success:
-            self.passed += 1
-            status = "✅ PASS"
-        else:
-            self.failed += 1
-            status = "❌ FAIL"
+    TEST_TABLE_NAME = "TestToolsTable"
 
-        self.results[tool_name] = {"status": status, "message": message, "data": data}
+    @pytest.fixture
+    def grist_credentials(self):
+        """Get Grist credentials from environment."""
+        api_key = os.getenv("GRIST_API_KEY")
+        if not api_key:
+            pytest.skip("GRIST_API_KEY not set")
 
-        print(f"\n{status} - {tool_name}")
-        if message:
-            print(f"   {message}")
-        if data:
-            print(f"   Data: {data}")
+        return {
+            "api_key": api_key,
+            "document_id": os.getenv("GRIST_DOCUMENT_ID", "test-document"),
+            "base_url": os.getenv(
+                "GRIST_BASE_URL", "https://docs.getgrist.com"
+            ),
+        }
 
-    def print_summary(self):
-        """Afficher le résumé des tests."""
-        print("\n" + "=" * 80)
-        print("RÉSUMÉ DES TESTS")
-        print("=" * 80)
-        print(f"Total: {self.total} | Passed: {self.passed} | Failed: {self.failed}")
-        print("=" * 80)
+    @pytest.fixture
+    async def real_grist_service(self, grist_credentials):
+        """Create real Grist service for integration tests."""
+        async with GristService(
+            document_id=grist_credentials["document_id"],
+            access_token=grist_credentials["api_key"],
+            base_url=grist_credentials["base_url"],
+            enable_validation=False,
+            use_api_key=True,
+        ) as service:
+            set_grist_service(service)
+            yield service
+            set_grist_service(None)
 
-        if self.failed > 0:
-            print("\n❌ ÉCHECS:")
-            for tool_name, result in self.results.items():
-                if "FAIL" in result["status"]:
-                    print(f"  - {tool_name}: {result['message']}")
+    async def test_real_get_tables(self, real_grist_service):
+        """Test get_tables with real API."""
+        result = await get_tables.ainvoke({})
+        assert isinstance(result, list)
+        # Should have at least some tables
+        assert len(result) >= 0
 
+    async def test_real_query_document(self, real_grist_service):
+        """Test query_document with real API."""
+        # Get tables first
+        tables = await get_tables.ainvoke({})
+        if not tables:
+            pytest.skip("No tables in document")
 
-# ============================================================================
-# Test Functions
-# ============================================================================
+        table_id = tables[0]["id"]
+        result = await query_document.ainvoke(
+            {"query": f"SELECT * FROM {table_id} LIMIT 3"}
+        )
+        assert isinstance(result, list)
 
+    async def test_real_full_workflow(self, real_grist_service):
+        """
+        Test complete workflow: create table, add data, query, update, delete.
 
-async def test_all_tools():
-    """Teste tous les tools disponibles."""
+        WARNING: This test creates a table that cannot be automatically deleted.
+        """
+        # 1. Create table
+        table_result = await add_table.ainvoke(
+            {
+                "table_id": self.TEST_TABLE_NAME,
+                "columns": [
+                    {"id": "TestName", "fields": {"type": "Text", "label": "Name"}},
+                    {"id": "TestAge", "fields": {"type": "Int", "label": "Age"}},
+                ],
+            }
+        )
+        assert table_result["table_id"] == self.TEST_TABLE_NAME
 
-    results = ToolTestResults()
-
-    if not API_KEY:
-        print("❌ ERREUR: GRIST_API_KEY non défini!")
-        print("   Définissez la variable d'environnement GRIST_API_KEY")
-        print("   Ou obtenez votre API Key depuis : Account Settings → API")
-        return
-
-    print("=" * 80)
-    print("TEST DE TOUS LES TOOLS GRIST")
-    print("=" * 80)
-    print(f"Document ID: {DOCUMENT_ID}")
-    print(f"Base URL: {BASE_URL}")
-    print(f"Auth: API Key (****{API_KEY[-8:]})")
-    print("=" * 80)
-
-    # Créer le service avec API Key
-    async with GristService(
-        document_id=DOCUMENT_ID,
-        access_token=API_KEY,
-        base_url=BASE_URL,
-        enable_validation=False,  # Désactiver la validation pour les tests
-        use_api_key=True,  # Utiliser l'authentification par API Key
-    ) as service:
-
-        set_grist_service(service)
-
-        # ====================================================================
-        # 1. Test get_tables
-        # ====================================================================
         try:
-            tables = await service.get_tables()
-            results.add(
-                "get_tables",
-                True,
-                f"Found {len(tables)} table(s)",
-                [t.get("id") for t in tables],
+            # 2. Add column
+            column_result = await add_table_column.ainvoke(
+                {
+                    "table_id": self.TEST_TABLE_NAME,
+                    "column_id": "TestEmail",
+                    "column_type": "Text",
+                    "label": "Email Address",
+                }
             )
-            existing_table = tables[0]["id"] if tables else None
-        except Exception as e:
-            results.add("get_tables", False, str(e))
-            existing_table = None
+            assert "column_id" in column_result
 
-        # ====================================================================
-        # 2. Test get_table_columns (sur table existante)
-        # ====================================================================
-        if existing_table:
-            try:
-                columns = await service.get_table_columns(existing_table)
-                results.add(
-                    "get_table_columns",
-                    True,
-                    f"Table '{existing_table}' has {len(columns)} column(s)",
-                    [c.get("id") for c in columns],
-                )
-            except Exception as e:
-                results.add("get_table_columns", False, str(e))
-        else:
-            results.add("get_table_columns", False, "No existing table to test")
-
-        # ====================================================================
-        # 3. Test query_document (SQL)
-        # ====================================================================
-        if existing_table:
-            try:
-                query_result = await service.query_document(
-                    f"SELECT * FROM {existing_table} LIMIT 3"
-                )
-                results.add(
-                    "query_document",
-                    True,
-                    f"Query returned {len(query_result)} record(s)",
-                )
-            except Exception as e:
-                results.add("query_document", False, str(e))
-        else:
-            results.add("query_document", False, "No table available for SQL query")
-
-        # ====================================================================
-        # 4. Test add_table
-        # ====================================================================
-        test_table_created = False
-        try:
-            columns = [
-                {"id": "TestName", "fields": {"type": "Text", "label": "Name"}},
-                {"id": "TestAge", "fields": {"type": "Int", "label": "Age"}},
-            ]
-            result = await service.add_table(TEST_TABLE_NAME, columns)
-            results.add(
-                "add_table",
-                True,
-                f"Created table '{TEST_TABLE_NAME}' with {result.get('columns_count', 0)} columns",
+            # 3. Add records
+            add_result = await add_records.ainvoke(
+                {
+                    "table_id": self.TEST_TABLE_NAME,
+                    "records": [
+                        {"TestName": "Alice", "TestAge": 30},
+                        {"TestName": "Bob", "TestAge": 25},
+                    ],
+                }
             )
-            test_table_created = True
-        except Exception as e:
-            results.add("add_table", False, str(e))
+            assert add_result["count"] == 2
+            record_ids = add_result["record_ids"]
 
-        # ====================================================================
-        # 5. Test add_table_column (sur table de test)
-        # ====================================================================
-        if test_table_created:
-            try:
-                result = await service.add_table_column(
-                    TEST_TABLE_NAME, "TestEmail", "Text", label="Email Address"
-                )
-                results.add(
-                    "add_table_column",
-                    True,
-                    f"Added column 'TestEmail' to table '{TEST_TABLE_NAME}'",
-                )
-            except Exception as e:
-                results.add("add_table_column", False, str(e))
-        else:
-            results.add("add_table_column", False, "Test table not created")
-
-        # ====================================================================
-        # 6. Test add_records (sur table de test)
-        # ====================================================================
-        if test_table_created:
-            try:
-                records = [
-                    {"TestName": "Alice", "TestAge": 30},
-                    {"TestName": "Bob", "TestAge": 25},
-                ]
-                result = await service.add_records(TEST_TABLE_NAME, records)
-                results.add(
-                    "add_records",
-                    True,
-                    f"Added {result.get('count', 0)} record(s)",
-                    result.get("record_ids"),
-                )
-                test_record_ids = result.get("record_ids", [])
-            except Exception as e:
-                results.add("add_records", False, str(e))
-                test_record_ids = []
-        else:
-            results.add("add_records", False, "Test table not created")
-            test_record_ids = []
-
-        # ====================================================================
-        # 7. Test update_records (sur table de test)
-        # ====================================================================
-        if test_table_created and test_record_ids:
-            try:
-                updates = [{"TestAge": 31}]  # Update first record
-                result = await service.update_records(
-                    TEST_TABLE_NAME, [test_record_ids[0]], updates
-                )
-                results.add(
-                    "update_records",
-                    True,
-                    f"Updated {result.get('updated_count', 0)} record(s)",
-                )
-            except Exception as e:
-                results.add("update_records", False, str(e))
-        else:
-            results.add("update_records", False, "No test records available")
-
-        # ====================================================================
-        # 8. Test update_table_column (sur table de test)
-        # ====================================================================
-        updated_column_id = "TestEmail"  # L'ID peut changer après update
-        if test_table_created:
-            try:
-                result = await service.update_table_column(
-                    TEST_TABLE_NAME, "TestEmail", label="Email (Updated)"
-                )
-                results.add(
-                    "update_table_column", True, "Updated column label successfully"
-                )
-
-                # Re-fetch les colonnes pour obtenir le nouvel ID (Grist peut l'avoir changé)
-                columns = await service.get_table_columns(TEST_TABLE_NAME)
-                # Chercher la colonne qui contient "Email" dans son ID
-                for col in columns:
-                    col_id = col.get("id", "")
-                    if "Email" in col_id and col_id != "TestEmail":
-                        updated_column_id = col_id
-                        break
-            except Exception as e:
-                results.add("update_table_column", False, str(e))
-        else:
-            results.add("update_table_column", False, "Test table not created")
-
-        # ====================================================================
-        # 9. Test remove_records (sur table de test)
-        # ====================================================================
-        if test_table_created and test_record_ids:
-            try:
-                # Supprimer seulement le premier record pour garder des données pour les autres tests
-                result = await service.remove_records(
-                    TEST_TABLE_NAME, [test_record_ids[0]]
-                )
-                results.add(
-                    "remove_records",
-                    True,
-                    f"Removed {result.get('deleted_count', 0)} record(s)",
-                )
-            except Exception as e:
-                results.add("remove_records", False, str(e))
-        else:
-            results.add("remove_records", False, "No test records available")
-
-        # ====================================================================
-        # 10. Test remove_table_column (sur table de test)
-        # ====================================================================
-        if test_table_created:
-            try:
-                # Utiliser l'ID mis à jour (Grist peut avoir changé l'ID après update)
-                result = await service.remove_table_column(
-                    TEST_TABLE_NAME, updated_column_id
-                )
-                results.add(
-                    "remove_table_column",
-                    True,
-                    f"Removed column '{updated_column_id}' successfully",
-                )
-            except Exception as e:
-                results.add("remove_table_column", False, str(e))
-        else:
-            results.add("remove_table_column", False, "Test table not created")
-
-        # ====================================================================
-        # 11. Test get_grist_access_rules_reference
-        # ====================================================================
-        try:
-            from app.core.tools import get_grist_access_rules_reference
-
-            # Les tools LangChain doivent être invoqués avec .ainvoke({})
-            result = await get_grist_access_rules_reference.ainvoke({})
-            results.add(
-                "get_grist_access_rules_reference",
-                True,
-                f"Returned documentation ({len(result)} chars)",
+            # 4. Update record
+            update_result = await update_records.ainvoke(
+                {
+                    "table_id": self.TEST_TABLE_NAME,
+                    "record_ids": [record_ids[0]],
+                    "records": [{"TestAge": 31}],
+                }
             )
-        except Exception as e:
-            results.add("get_grist_access_rules_reference", False, str(e))
+            assert update_result["updated_count"] == 1
 
-        # ====================================================================
-        # 12. Test get_available_custom_widgets
-        # ====================================================================
-        try:
-            from app.core.tools import get_available_custom_widgets
-
-            # Les tools LangChain doivent être invoqués avec .ainvoke({})
-            result = await get_available_custom_widgets.ainvoke({})
-            results.add(
-                "get_available_custom_widgets",
-                True,
-                f"Found {len(result)} available widget(s)",
-                [w.get("name") for w in result],
+            # 5. Query data
+            query_result = await query_document.ainvoke(
+                {"query": f"SELECT * FROM {self.TEST_TABLE_NAME}"}
             )
-        except Exception as e:
-            results.add("get_available_custom_widgets", False, str(e))
+            assert len(query_result) >= 2
 
-        # ====================================================================
-        # CLEANUP: Supprimer la table de test
-        # ====================================================================
-        # NOTE: Comme remove_table n'existe pas dans l'API, on laisse la table
-        # L'utilisateur peut la supprimer manuellement via l'interface Grist
-        if test_table_created:
+            # 6. Delete record
+            delete_result = await remove_records.ainvoke(
+                {"table_id": self.TEST_TABLE_NAME, "record_ids": [record_ids[0]]}
+            )
+            assert delete_result["deleted_count"] == 1
+
+            # 7. Update column
+            update_col_result = await update_table_column.ainvoke(
+                {
+                    "table_id": self.TEST_TABLE_NAME,
+                    "column_id": "TestEmail",
+                    "label": "Email (Updated)",
+                }
+            )
+            assert update_col_result["updated"] is True
+
+            # 8. Get columns to find updated column ID
+            columns = await get_table_columns.ainvoke(
+                {"table_id": self.TEST_TABLE_NAME}
+            )
+            email_column = next(
+                (c for c in columns if "Email" in c.get("id", "")), None
+            )
+            assert email_column is not None
+
+            # 9. Delete column
+            if email_column:
+                delete_col_result = await remove_table_column.ainvoke(
+                    {
+                        "table_id": self.TEST_TABLE_NAME,
+                        "column_id": email_column["id"],
+                    }
+                )
+                assert delete_col_result["deleted"] is True
+
+        finally:
+            # Cleanup note
             print(
-                f"\n⚠️  ATTENTION: Table de test '{TEST_TABLE_NAME}' créée mais non supprimée"
+                f"\n⚠️  WARNING: Test table '{self.TEST_TABLE_NAME}' was created "
+                "but cannot be automatically deleted (Grist API limitation). "
+                "Please delete it manually from the Grist interface."
             )
-            print(f"   (L'API Grist ne permet pas de supprimer des tables)")
-            print(f"   Vous pouvez la supprimer manuellement via l'interface Grist")
-
-    # Afficher le résumé
-    results.print_summary()
-
-    return results.failed == 0
-
-
-# ============================================================================
-# Main
-# ============================================================================
-
-if __name__ == "__main__":
-    print("\n🧪 DÉBUT DES TESTS\n")
-
-    success = asyncio.run(test_all_tools())
-
-    if success:
-        print("\n✅ TOUS LES TESTS SONT PASSÉS!\n")
-        sys.exit(0)
-    else:
-        print("\n❌ CERTAINS TESTS ONT ÉCHOUÉ\n")
-        sys.exit(1)

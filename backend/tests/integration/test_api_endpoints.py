@@ -16,7 +16,7 @@ class TestHealthEndpoint:
 
     def test_health_check(self, api_client):
         """Test health check endpoint."""
-        response = api_client.get("/health")
+        response = api_client.get("/api/v1/health")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -30,7 +30,7 @@ class TestChatEndpoint:
 
     def test_chat_missing_api_key(self, api_client, sample_chat_request):
         """Test chat endpoint without API key."""
-        response = api_client.post("/chat", json=sample_chat_request)
+        response = api_client.post("/api/v1/chat", json=sample_chat_request)
 
         # Should fail without x-api-key header
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -51,7 +51,7 @@ class TestChatEndpoint:
         mock_agent_class.return_value = mock_agent
 
         response = api_client.post(
-            "/chat", json=sample_chat_request, headers=sample_headers
+            "/api/v1/chat", json=sample_chat_request, headers=sample_headers
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -80,7 +80,7 @@ class TestChatEndpoint:
         mock_agent_class.return_value = mock_agent
 
         response = api_client.post(
-            "/chat", json=sample_chat_request, headers=sample_headers
+            "/api/v1/chat", json=sample_chat_request, headers=sample_headers
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -128,7 +128,7 @@ class TestChatEndpoint:
         mock_agent.cleanup = AsyncMock()
         mock_agent_class.return_value = mock_agent
 
-        response = api_client.post("/chat", json=request_data, headers=sample_headers)
+        response = api_client.post("/api/v1/chat", json=request_data, headers=sample_headers)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -141,7 +141,7 @@ class TestChatEndpoint:
             "documentId": "test-doc",
         }
 
-        response = api_client.post("/chat", json=request_data, headers=sample_headers)
+        response = api_client.post("/api/v1/chat", json=request_data, headers=sample_headers)
 
         # Should return 400 for no user message
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -163,7 +163,7 @@ class TestChatEndpoint:
         mock_agent_class.return_value = mock_agent
 
         response = api_client.post(
-            "/chat", json=sample_chat_request, headers=sample_headers
+            "/api/v1/chat", json=sample_chat_request, headers=sample_headers
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -194,7 +194,7 @@ class TestChatEndpoint:
             mock_agent_class.return_value = mock_agent
 
             response = api_client.post(
-                "/chat", json=request_data, headers=sample_headers
+                "/api/v1/chat", json=request_data, headers=sample_headers
             )
 
             assert response.status_code == status.HTTP_200_OK
@@ -249,7 +249,7 @@ class TestConfirmEndpoint:
         )
 
         response = api_client.post(
-            "/chat/confirm",
+            "/api/v1/chat/confirm",
             json=decision.model_dump(),
             headers=sample_headers,
         )
@@ -309,7 +309,7 @@ class TestConfirmEndpoint:
         )
 
         response = api_client.post(
-            "/chat/confirm",
+            "/api/v1/chat/confirm",
             json=decision.model_dump(),
             headers=sample_headers,
         )
@@ -336,7 +336,7 @@ class TestConfirmEndpoint:
         )
 
         response = api_client.post(
-            "/chat/confirm",
+            "/api/v1/chat/confirm",
             json=decision.model_dump(),
             headers=sample_headers,
         )
@@ -378,7 +378,7 @@ class TestConfirmEndpoint:
         )
 
         response = api_client.post(
-            "/chat/confirm",
+            "/api/v1/chat/confirm",
             json=decision.model_dump(),
             headers=sample_headers,
         )
@@ -396,7 +396,7 @@ class TestConfirmEndpoint:
         )
 
         response = api_client.post(
-            "/chat/confirm",
+            "/api/v1/chat/confirm",
             json=decision.model_dump(),
             headers=sample_headers,
         )
@@ -440,7 +440,7 @@ class TestConfirmEndpoint:
         )
 
         response = api_client.post(
-            "/chat/confirm",
+            "/api/v1/chat/confirm",
             json=decision.model_dump(),
             headers=sample_headers,
         )
@@ -489,7 +489,7 @@ class TestConfirmEndpoint:
         )
 
         response = api_client.post(
-            "/chat/confirm",
+            "/api/v1/chat/confirm",
             json=decision.model_dump(),
             headers=sample_headers,
         )
@@ -509,7 +509,7 @@ class TestConfirmEndpoint:
         )
 
         response = api_client.post(
-            "/chat/confirm",
+            "/api/v1/chat/confirm",
             json=decision.model_dump(),
         )
 
