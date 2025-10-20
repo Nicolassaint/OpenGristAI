@@ -123,13 +123,18 @@ class ValidationService:
 
         raise ColumnNotFoundException(column_id, table_id, column_ids)
 
-    async def validate_record_data(self, table_id: str, record: Dict[str, Any]) -> None:
+    async def validate_record_data(
+        self, table_id: str, record: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
-        Validate record data against table schema.
+        Validate record data against table schema and correct field IDs.
 
         Args:
             table_id: Table ID
             record: Record data to validate
+
+        Returns:
+            Corrected record with proper field IDs (case-insensitive matching applied)
 
         Raises:
             ValidationException: If validation fails
@@ -141,22 +146,36 @@ class ValidationService:
             )
 
         columns = {c["id"]: c for c in self._columns_cache[table_id]}
+        corrected_record = {}
 
         # Validate each field in the record
         for field_id, value in record.items():
             if field_id == "id":
                 # Skip ID field (auto-generated)
+                corrected_record["id"] = value
                 continue
 
-            if field_id not in columns:
-                # Column doesn't exist - will raise error
-                await self.validate_column_exists(table_id, field_id)
-                continue
+            # Try to find column (exact match first, then case-insensitive)
+            column = None
+            corrected_field_id = field_id
 
-            column = columns[field_id]
-            await self._validate_field_type(field_id, value, column)
+            if field_id in columns:
+                # Exact match
+                column = columns[field_id]
+            else:
+                # Try case-insensitive match
+                column_info = await self.validate_column_exists(table_id, field_id)
+                corrected_field_id = column_info["id"]
+                column = column_info
 
-        logger.debug(f"Record data for table '{table_id}' validated")
+            # Validate the field type
+            await self._validate_field_type(corrected_field_id, value, column)
+
+            # Add to corrected record with proper ID
+            corrected_record[corrected_field_id] = value
+
+        logger.debug(f"Record data for table '{table_id}' validated and corrected")
+        return corrected_record
 
     async def _validate_field_type(
         self, field_id: str, value: Any, column: Dict[str, Any]

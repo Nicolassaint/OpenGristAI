@@ -457,16 +457,20 @@ class GristService:
 
         # Validate if enabled (get corrected ID for case-insensitive match)
         validator = self._get_validator()
+        corrected_records = records
         if validator:
             table_id = await validator.validate_table_exists(table_id)
+            # Validate and correct each record
+            corrected_records = []
             for record in records:
-                await validator.validate_record_data(table_id, record)
+                corrected = await validator.validate_record_data(table_id, record)
+                corrected_records.append(corrected)
 
         try:
             # Format records for Grist API
             # Grist expects {"fields": {...}} for each record
             formatted_records = []
-            for record in records:
+            for record in corrected_records:
                 formatted_records.append({"fields": record})
 
             result = await self.client.add_records(table_id, formatted_records)
@@ -512,16 +516,20 @@ class GristService:
 
         # Validate if enabled (get corrected ID for case-insensitive match)
         validator = self._get_validator()
+        corrected_records = records
         if validator:
             table_id = await validator.validate_table_exists(table_id)
+            # Validate and correct each record
+            corrected_records = []
             for record in records:
-                await validator.validate_record_data(table_id, record)
+                corrected = await validator.validate_record_data(table_id, record)
+                corrected_records.append(corrected)
 
         try:
             # Format records for Grist API
             # Grist expects {"id": ..., "fields": {...}} for each record
             formatted_records = []
-            for record_id, fields in zip(record_ids, records):
+            for record_id, fields in zip(record_ids, corrected_records):
                 formatted_records.append({"id": record_id, "fields": fields})
 
             await self.client.update_records(table_id, formatted_records)
