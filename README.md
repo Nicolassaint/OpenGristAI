@@ -16,8 +16,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-2.16-FF3E00.svg)](https://kit.svelte.dev)
 [![LangChain](https://img.shields.io/badge/🦜🔗_LangChain-0.3-green.svg)](https://python.langchain.com)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 *Interagissez avec vos documents [Grist](https://www.getgrist.com) en langage naturel*
 
@@ -29,25 +29,30 @@
 
 ## 🎯 Qu'est-ce que OpenGristAI ?
 
-OpenGristAI est un assistant IA open source qui permet d'interagir avec vos documents Grist via une interface conversationnelle en langage naturel. Posez des questions, modifiez vos données, créez des tables - tout en français !
+OpenGristAI est un assistant IA open source complet qui permet d'interagir avec vos documents Grist via une interface conversationnelle moderne. Le projet comprend :
+
+- **🔧 Backend API** : FastAPI avec 13 outils Grist et agents IA spécialisés
+- **🎨 Frontend Widget** : Interface SvelteKit moderne intégrée nativement dans Grist
+- **🤖 Intelligence** : Agents IA pour SQL, analyse et conversation naturelle
 
 ### ✨ Fonctionnalités
 
 - 🇫🇷 **Interface française** • Prompts et interactions en français
 - 🤖 **13 outils Grist** • CRUD complet sur tables, colonnes et enregistrements
 - ✅ **Confirmations intelligentes** • Protection pour les opérations destructives
-- 🔐 **Multi-auth** • JWT token (widget) + API key
-- 🚀 **Performance** • Architecture async avec FastAPI + httpx
+- 🔐 **Authentification automatique** • Token Grist intégré, aucune config manuelle
+- 🚀 **Performance** • Architecture async avec FastAPI + SvelteKit
 - 🧪 **Testé** • Suite complète de tests unitaires et d'intégration
-- 🐳 **Production-ready** • Docker + docker-compose
+- 🐳 **Production-ready** • Docker + docker-compose pour l'ensemble
 
 ### 🛠 Stack
 
-Python 3.10+ • FastAPI • LangChain • Pydantic • httpx • PostgreSQL • Redis • Docker
+**Backend** : Python 3.10+ • FastAPI • LangChain • Pydantic • httpx • PostgreSQL • Redis  
+**Frontend** : SvelteKit 2.x • TypeScript • TailwindCSS • AI SDK
 
 ## 📦 Installation Rapide
 
-### Avec Docker (recommandé)
+### 🐳 Avec Docker (recommandé pour utilisateurs)
 
 ```bash
 # Cloner le repo
@@ -55,31 +60,98 @@ git clone https://github.com/nicolassaint/OpenGristAI.git
 cd OpenGristAI
 
 # Configurer l'environnement
-cp .env.example .env
-# Éditer .env avec vos clés API
+cp backend/.env.example backend/.env
+# Éditer backend/.env avec vos clés API
 
-# Lancer
-docker-compose up -d
+# Lancer l'ensemble
+make docker-up
+# ou: docker-compose up -d
 
 # Vérifier
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/v1/health  # Backend
+curl http://localhost:5173                # Frontend
 ```
 
-### Sans Docker
+### 💻 Développement local (recommandé pour développeurs)
+
+**Option 1 : Utiliser les scripts (le plus simple)**
 
 ```bash
-# Prérequis : Python 3.10+
-pip install -r requirements.txt
+# 1. Configurer l'environnement
+cp backend/.env.example backend/.env
+# Éditer backend/.env avec vos clés API
 
-# Lancer l'API
-uvicorn app.api.main:app --host 0.0.0.0 --port 8000
+# 2. Installer les dépendances
+make install
+# ou manuellement:
+#   pip install -r backend/requirements.txt
+#   cd frontend && npm install
+
+# 3. Lancer le backend (terminal 1)
+# Activez d'abord votre environnement Python (conda, venv, etc.)
+conda activate your-env  # ou: source venv/bin/activate
+make dev-backend
+# ou: ./scripts/dev-backend.sh
+
+# 4. Lancer le frontend (terminal 2)
+make dev-frontend
+# ou: ./scripts/dev-frontend.sh
+```
+
+**Option 2 : Commandes manuelles**
+
+```bash
+# Backend (terminal 1)
+cd backend
+# Activez votre environnement Python préféré
+conda activate your-env  # ou venv, pyenv, etc.
+pip install -r requirements.txt
+uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Frontend (terminal 2)
+cd frontend
+npm install
+npm run dev
+```
+
+**Option 3 : Mix Docker + Local**
+
+```bash
+# Frontend via Docker
+docker-compose up -d frontend
+
+# Backend en local (pour debug intensif)
+conda activate your-env
+cd backend
+uvicorn app.api.main:app --reload
+```
+
+## 🏗 Architecture du Monorepo
+
+```
+OpenGristAI/
+├── 📁 backend/                    # API FastAPI + Agents IA
+│   ├── app/                       # Code source Python
+│   ├── tests/                     # Tests unitaires
+│   ├── requirements.txt           # Dépendances Python
+│   └── Dockerfile                # Image Docker backend
+├── 📁 frontend/                   # Widget SvelteKit
+│   ├── src/                       # Code source SvelteKit
+│   ├── package.json              # Dépendances Node.js
+│   └── svelte.config.js          # Config SvelteKit
+├── 📁 docs/                      # Documentation unifiée
+├── 📁 scripts/                   # Scripts de développement
+│   ├── dev.sh                    # Lance backend + frontend
+│   └── build.sh                  # Build de production
+├── 📄 docker-compose.yml         # Déploiement complet
+└── 📄 README.md                  # Ce fichier
 ```
 
 ## 🚀 Utilisation
 
-### Endpoint Principal
+### 1. Backend API
 
-**POST** `/api/v1/chat`
+**Endpoint principal** : `POST /api/v1/chat`
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/chat \
@@ -94,47 +166,11 @@ curl -X POST http://localhost:8000/api/v1/chat \
   }'
 ```
 
-### Exemples
+### 2. Frontend Widget
 
-<details>
-<summary><b>💬 Questions & Analyses</b></summary>
-
-```
-"Quelles sont les tables disponibles ?"
-"Montre-moi les 10 derniers clients"
-"Quel est le total des ventes par région ?"
-"Quelle est la moyenne d'âge des employés ?"
-```
-</details>
-
-<details>
-<summary><b>➕ Créations</b></summary>
-
-```
-"Crée une table Projets avec colonnes Nom, Budget, Statut"
-"Ajoute une colonne Date_Debut à la table Projets"
-"Ajoute un client : Marie Dupont, marie@email.fr, Paris"
-```
-</details>
-
-<details>
-<summary><b>✏️ Modifications</b></summary>
-
-```
-"Change le statut du projet Alpha à 'Terminé'"
-"Augmente le budget de tous les projets actifs de 10%"
-"Renomme la colonne Date_Debut en Date_Lancement"
-```
-</details>
-
-<details>
-<summary><b>🗑️ Suppressions (avec confirmation)</b></summary>
-
-```
-"Supprime les projets archivés"
-"Supprime la colonne Notes de la table Clients"
-```
-</details>
+1. **Développement** : `http://localhost:5173`
+2. **Intégration Grist** : Ajouter comme Custom Widget
+3. **Authentification** : Automatique via token Grist
 
 ## 🛠 Outils Disponibles
 
@@ -152,65 +188,73 @@ OpenGristAI dispose de **13 outils** organisés en 5 catégories :
 
 ## ⚙️ Configuration
 
-OpenGristAI supporte **tous les providers compatibles OpenAI** :
+### Backend (Python)
 
-| Provider | Base URL | Exemple |
-|----------|----------|---------|
-| **OpenAI** | `https://api.openai.com/v1` | `gpt-4o-mini` |
-| **HuggingFace** | `https://api-inference.huggingface.co/v1` | `meta-llama/Meta-Llama-3.1-8B-Instruct` |
-| **Ollama** | `http://localhost:11434/v1` | `llama3.2` |
-| **LM Studio** | `http://localhost:1234/v1` | `llama-3.2-3b-instruct` |
+Voir `backend/.env.example` pour la configuration complète.
 
-Voir `.env.example` pour la configuration complète.
+### Frontend (SvelteKit)
+
+```env
+# frontend/.env
+PUBLIC_CHAT_URL='http://localhost:8000/api/v1/chat'
+```
 
 ## 🧪 Développement
 
+### Commandes disponibles (Makefile)
+
 ```bash
+make help           # Affiche toutes les commandes disponibles
+
+# Installation
+make install        # Installe toutes les dépendances (backend + frontend)
+
+# Développement local
+make dev-backend    # Lance le backend (nécessite Python env activé)
+make dev-frontend   # Lance le frontend
+
+# Docker
+make docker-up      # Lance tout via Docker
+make docker-down    # Arrête tous les conteneurs
+make docker-logs    # Affiche les logs
+
 # Tests
-pytest                          # Tous les tests
-pytest --cov=app tests/         # Avec couverture
+make test-backend   # Teste le backend (pytest)
+make test-frontend  # Teste le frontend (type checking)
 
 # Qualité du code
+make lint-backend   # Lint Python (ruff)
+make format-backend # Format Python (black)
+make lint-frontend  # Lint TypeScript (eslint)
+make format-frontend # Format TypeScript (prettier)
+
+# Nettoyage
+make clean          # Supprime les fichiers temporaires
+```
+
+### Tests et qualité
+
+```bash
+# Backend
+cd backend
+pytest -v                       # Tests unitaires
+pytest --cov=app                # Avec couverture
 black app/ tests/               # Formatage
 ruff app/ tests/                # Linting
-mypy app/                       # Types
+
+# Frontend
+cd frontend
+npm run check                   # Type checking
+npm run lint                    # ESLint
+npm run format                  # Prettier
 ```
-
-## 🏗 Architecture
-
-**Architecture en 3 couches** : API → Core → Services
-
-```
-┌─────────────┐
-│  API Layer  │  FastAPI endpoints + validation
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│ Core Layer  │  Agent + LLM + 13 Tools + Confirmations
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│  Services   │  Grist Client + Validation + Preview
-└──────┬──────┘
-       │
-   ┌───┴───┐
-┌──▼──┐ ┌──▼──┐
-│Grist│ │ LLM │
-└─────┘ └─────┘
-```
-
-**Points clés** :
-- 🔄 **Custom Agent Loop** : Meilleur contrôle que AgentExecutor
-- ✅ **Système de confirmation** : Protection pour opérations destructives
-- 🎯 **Validation multicouche** : Tables, colonnes, données
-
-📚 Détails complets : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ## 📖 Documentation
 
-- 📚 **[Architecture](docs/ARCHITECTURE.md)** • Détails techniques complets
-- 🔗 **[Intégration](docs/INTEGRATION.md)** • Guide d'intégration Grist
-- 🚀 **[API Reference](docs/)** • Documentation complète des endpoints
+- 📚 **[Architecture Backend](backend/README.md)** • API FastAPI et agents IA
+- 🎨 **[Frontend Widget](frontend/README.md)** • Interface SvelteKit
+- 🔗 **[Intégration Grist](docs/INTEGRATION.md)** • Guide d'intégration
+- 🚀 **[Déploiement](docs/DEPLOYMENT.md)** • Production et Docker
 
 ## 🤝 Contributing
 
@@ -224,16 +268,17 @@ Contributions bienvenues ! Pour contribuer :
 
 **Guidelines** :
 - Ajouter des tests pour toute nouvelle fonctionnalité
-- Suivre le style de code existant (black + ruff)
+- Suivre le style de code existant (black + ruff pour Python, prettier + eslint pour JS/TS)
 - Mettre à jour la documentation si nécessaire
 
 ## 🗺 Roadmap
 
-- [x] **Phase 1** - Foundation (LLM + 5 outils essentiels)
-- [x] **Phase 2** - Robustness (Validation + confirmations)
-- [ ] **Phase 3** - Intelligence (Mémorisation + contexte)
-- [ ] **Phase 4** - Monitoring (Observabilité + métriques)
-- [ ] **Phase 5** - Scale (Streaming + parallélisation + cache)
+- [x] **Phase 1** - Foundation (Backend API + 5 outils essentiels)
+- [x] **Phase 2** - Frontend (Widget SvelteKit + intégration Grist)
+- [x] **Phase 3** - Robustness (Validation + confirmations)
+- [ ] **Phase 4** - Intelligence (Mémorisation + contexte)
+- [ ] **Phase 5** - Monitoring (Observabilité + métriques)
+- [ ] **Phase 6** - Scale (Streaming + parallélisation + cache)
 
 ## 📄 Licence
 

@@ -1,9 +1,10 @@
 version: '3.8'
 
 services:
+  # 🗄️ Base de données PostgreSQL
   postgres:
     image: postgres:16-alpine
-    container_name: grist-ai-postgres
+    container_name: opengristai-postgres
     environment:
       POSTGRES_USER: grist_ai
       POSTGRES_PASSWORD: grist_ai_dev_password
@@ -18,9 +19,10 @@ services:
       timeout: 5s
       retries: 5
 
+  # 🔄 Cache Redis
   redis:
     image: redis:7-alpine
-    container_name: grist-ai-redis
+    container_name: opengristai-redis
     ports:
       - "6379:6379"
     volumes:
@@ -32,11 +34,12 @@ services:
       retries: 5
     command: redis-server --appendonly yes
 
-  api:
+  # 🔧 Backend API (FastAPI)
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: grist-ai-api
+    container_name: opengristai-backend
     ports:
       - "8000:8000"
     environment:
@@ -46,8 +49,10 @@ services:
       # Redis
       REDIS_URL: redis://redis:6379/0
 
-      # OpenAI
+      # OpenAI Configuration
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
 
       # Application
       ENVIRONMENT: development
@@ -59,9 +64,30 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./app:/app/app
-      - ./tests:/app/tests
+      - ./backend/app:/app/app
+      - ./backend/tests:/app/tests
     command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # 🎨 Frontend Widget (SvelteKit)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: opengristai-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      # Backend API URL
+      PUBLIC_CHAT_URL: http://localhost:8000/api/v1/chat
+      
+      # Development
+      NODE_ENV: development
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/static:/app/static
+    command: npm run dev -- --host 0.0.0.0
 
 volumes:
   postgres_data:

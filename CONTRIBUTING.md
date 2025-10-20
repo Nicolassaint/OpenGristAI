@@ -47,7 +47,7 @@ Ce projet suit le [Contributor Covenant](https://www.contributor-covenant.org/).
 
 ```bash
 # Fork et clone
-git clone https://github.com/your-username/OpenGristAI.git
+git clone https://github.com/nicolassaint/OpenGristAI.git
 cd OpenGristAI
 
 # Créer un environnement virtuel
@@ -242,7 +242,7 @@ How was this tested?
 
 - 💬 [Discussions](https://github.com/your-org/OpenGristAI/discussions)
 - 🐛 [Issues](https://github.com/your-org/OpenGristAI/issues)
-- 📧 Email : contact@example.com
+- 📧 Email : nicolas.saint78@gmail.com
 
 ---
 
