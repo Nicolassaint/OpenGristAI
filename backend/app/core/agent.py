@@ -94,7 +94,7 @@ class GristAgent:
         set_grist_service(self.grist_service)
 
         # Create confirmation handler
-        from app.core.confirmation_handler import ConfirmationHandler
+        from app.core.confirmation import ConfirmationHandler
 
         self.confirmation_handler = ConfirmationHandler(
             grist_service=self.grist_service,

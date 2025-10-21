@@ -7,7 +7,7 @@ Tests the fuzzy matching functionality for tables and columns.
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from app.services.validation import ValidationService
+from app.services.validation_service import ValidationService
 from app.models.exceptions import TableNotFoundException, ColumnNotFoundException
 
 

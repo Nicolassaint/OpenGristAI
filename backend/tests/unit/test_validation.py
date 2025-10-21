@@ -7,7 +7,7 @@ Tests for data validation logic.
 import pytest
 from unittest.mock import AsyncMock
 
-from app.services.validation import ValidationService
+from app.services.validation_service import ValidationService
 from app.services.grist_service import GristService
 from app.models import (
     TableNotFoundException,

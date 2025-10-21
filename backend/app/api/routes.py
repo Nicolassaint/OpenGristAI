@@ -20,7 +20,7 @@ from app.models import (
     UIMessage,
 )
 from app.core.agent import GristAgent
-from app.services.confirmation_service import get_confirmation_service
+from app.core.confirmation import get_confirmation_service
 from app.core.tools import get_all_tools, set_grist_service
 
 logger = logging.getLogger(__name__)

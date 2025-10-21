@@ -7,7 +7,7 @@ Tests for confirmation workflow management.
 import pytest
 from datetime import datetime, timedelta
 
-from app.services.confirmation_service import (
+from app.core.confirmation import (
     ConfirmationService,
     get_confirmation_service,
     requires_confirmation,

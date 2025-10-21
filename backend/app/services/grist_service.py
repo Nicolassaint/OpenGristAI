@@ -72,7 +72,7 @@ class GristService:
     def _get_validator(self):
         """Get or create the validation service."""
         if self._validator is None and self.enable_validation:
-            from app.services.validation import ValidationService
+            from app.services.validation_service import ValidationService
 
             self._validator = ValidationService(self)
         return self._validator

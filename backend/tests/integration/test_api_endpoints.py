@@ -207,7 +207,7 @@ class TestConfirmEndpoint:
     @pytest.fixture(autouse=True)
     def setup_and_cleanup(self):
         """Clear confirmation service before and after each test."""
-        from app.services.confirmation_service import get_confirmation_service
+        from app.core.confirmation import get_confirmation_service
 
         service = get_confirmation_service()
         service.clear_all()
@@ -222,7 +222,7 @@ class TestConfirmEndpoint:
             OperationPreview,
             OperationType,
         )
-        from app.services.confirmation_service import get_confirmation_service
+        from app.core.confirmation import get_confirmation_service
 
         # Create a pending confirmation
         service = get_confirmation_service()
@@ -273,7 +273,7 @@ class TestConfirmEndpoint:
             OperationPreview,
             OperationType,
         )
-        from app.services.confirmation_service import get_confirmation_service
+        from app.core.confirmation import get_confirmation_service
 
         # Create a pending confirmation
         service = get_confirmation_service()
@@ -351,7 +351,7 @@ class TestConfirmEndpoint:
             OperationPreview,
             OperationType,
         )
-        from app.services.confirmation_service import get_confirmation_service
+        from app.core.confirmation import get_confirmation_service
 
         # Create a confirmation that expires immediately
         service = get_confirmation_service()
@@ -413,7 +413,7 @@ class TestConfirmEndpoint:
             OperationPreview,
             OperationType,
         )
-        from app.services.confirmation_service import get_confirmation_service
+        from app.core.confirmation import get_confirmation_service
 
         service = get_confirmation_service()
         preview = OperationPreview(
@@ -459,7 +459,7 @@ class TestConfirmEndpoint:
             OperationPreview,
             OperationType,
         )
-        from app.services.confirmation_service import get_confirmation_service
+        from app.core.confirmation import get_confirmation_service
 
         service = get_confirmation_service()
         preview = OperationPreview(
