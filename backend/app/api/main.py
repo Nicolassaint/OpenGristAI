@@ -148,7 +148,7 @@ if static_dir.exists():
     app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="frontend")
 else:
     logger.warning("⚠️  Frontend static files not found - API only mode")
-    
+
     @app.get("/")
     async def root():
         """Root endpoint with API information (dev mode)."""

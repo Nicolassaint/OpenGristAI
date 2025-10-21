@@ -114,7 +114,8 @@ class GristAPIClient:
             httpx.HTTPError: If request fails
         """
         url = self._build_url(path)
-        logger.debug(f"{method} {url}")
+        # Log only path for security (no full URL with tokens)
+        logger.debug(f"{method} {path}")
 
         try:
             response = await self.client.request(method, url, **kwargs)

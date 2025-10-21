@@ -17,39 +17,43 @@ def mock_grist_service():
     service = MagicMock()
 
     # Mock get_tables
-    service.get_tables = AsyncMock(return_value=[
-        {"id": "Clients", "fields": {}},
-        {"id": "Products", "fields": {}},
-        {"id": "Orders", "fields": {}},
-    ])
+    service.get_tables = AsyncMock(
+        return_value=[
+            {"id": "Clients", "fields": {}},
+            {"id": "Products", "fields": {}},
+            {"id": "Orders", "fields": {}},
+        ]
+    )
 
     # Mock get_table_columns for "Clients"
-    service.get_table_columns = AsyncMock(return_value=[
-        {
-            "id": "Nom",
-            "fields": {
-                "type": "Text",
-                "label": "Nom",
-                "colRef": 1,
-            }
-        },
-        {
-            "id": "Email",
-            "fields": {
-                "type": "Text",
-                "label": "Email",
-                "colRef": 2,
-            }
-        },
-        {
-            "id": "Age",
-            "fields": {
-                "type": "Int",
-                "label": "Age",
-                "colRef": 3,
-            }
-        },
-    ])
+    service.get_table_columns = AsyncMock(
+        return_value=[
+            {
+                "id": "Nom",
+                "fields": {
+                    "type": "Text",
+                    "label": "Nom",
+                    "colRef": 1,
+                },
+            },
+            {
+                "id": "Email",
+                "fields": {
+                    "type": "Text",
+                    "label": "Email",
+                    "colRef": 2,
+                },
+            },
+            {
+                "id": "Age",
+                "fields": {
+                    "type": "Int",
+                    "label": "Age",
+                    "colRef": 3,
+                },
+            },
+        ]
+    )
 
     return service
 
@@ -246,7 +250,9 @@ class TestValidationCache:
 
         # Second call - should use cache
         await validator.validate_column_exists("Clients", "email")
-        assert mock_grist_service.get_table_columns.call_count == 1  # No additional call
+        assert (
+            mock_grist_service.get_table_columns.call_count == 1
+        )  # No additional call
 
     async def test_cache_can_be_cleared(self, mock_grist_service):
         """Test that cache can be manually cleared."""

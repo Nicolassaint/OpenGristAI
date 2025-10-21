@@ -74,7 +74,9 @@ class ValidationService:
         table_id_lower = table_id.lower()
         for tid in table_ids:
             if tid.lower() == table_id_lower:
-                logger.debug(f"Table '{table_id}' validated (case-insensitive match: '{tid}')")
+                logger.debug(
+                    f"Table '{table_id}' validated (case-insensitive match: '{tid}')"
+                )
                 return tid
 
         raise TableNotFoundException(table_id, table_ids)
@@ -110,14 +112,18 @@ class ValidationService:
         # Exact match first
         column = next((c for c in columns if c["id"] == column_id), None)
         if column:
-            logger.debug(f"Column '{column_id}' in table '{table_id}' validated (exact match)")
+            logger.debug(
+                f"Column '{column_id}' in table '{table_id}' validated (exact match)"
+            )
             return column
 
         # Case-insensitive match
         column_id_lower = column_id.lower()
         for c in columns:
             if c["id"].lower() == column_id_lower:
-                logger.debug(f"Column '{column_id}' validated (case-insensitive match: '{c['id']}')")
+                logger.debug(
+                    f"Column '{column_id}' validated (case-insensitive match: '{c['id']}')"
+                )
                 # Return column with corrected ID
                 return c
 

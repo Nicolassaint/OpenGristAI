@@ -17,37 +17,43 @@ def mock_grist_client():
     client = MagicMock(spec=GristAPIClient)
 
     # Mock get_tables
-    client.get_tables = AsyncMock(return_value=[
-        {"id": "Clients", "fields": {}},
-        {"id": "Products", "fields": {}},
-    ])
+    client.get_tables = AsyncMock(
+        return_value=[
+            {"id": "Clients", "fields": {}},
+            {"id": "Products", "fields": {}},
+        ]
+    )
 
     # Mock get_table_columns
-    client.get_table_columns = AsyncMock(return_value=[
-        {
-            "id": "Nom",
-            "fields": {
-                "type": "Text",
-                "label": "Nom",
-                "colRef": 1,
-            }
-        },
-        {
-            "id": "Email",
-            "fields": {
-                "type": "Text",
-                "label": "Email",
-                "colRef": 2,
-            }
-        },
-    ])
+    client.get_table_columns = AsyncMock(
+        return_value=[
+            {
+                "id": "Nom",
+                "fields": {
+                    "type": "Text",
+                    "label": "Nom",
+                    "colRef": 1,
+                },
+            },
+            {
+                "id": "Email",
+                "fields": {
+                    "type": "Text",
+                    "label": "Email",
+                    "colRef": 2,
+                },
+            },
+        ]
+    )
 
     # Mock CRUD operations
     client.add_column = AsyncMock(return_value={"id": "TestColumn"})
     client.update_column = AsyncMock()
     client.delete_column = AsyncMock()
     client.get_records = AsyncMock(return_value=[])
-    client.add_records = AsyncMock(return_value={"records": [{"id": 1}, {"id": 2}, {"id": 3}]})
+    client.add_records = AsyncMock(
+        return_value={"records": [{"id": 1}, {"id": 2}, {"id": 3}]}
+    )
     client.update_records = AsyncMock()
 
     return client
@@ -59,7 +65,7 @@ def grist_service(mock_grist_client):
     service = GristService(
         document_id="test-doc",
         access_token="test-token",
-        base_url="https://test.getgrist.com"
+        base_url="https://test.getgrist.com",
     )
     service.client = mock_grist_client
     return service
@@ -73,9 +79,7 @@ class TestAddTableColumnCaseInsensitive:
     async def test_lowercase_table_name(self, grist_service, mock_grist_client):
         """Test adding column to lowercase table name."""
         result = await grist_service.add_table_column(
-            table_id="clients",  # lowercase
-            column_id="Phone",
-            col_type="Text"
+            table_id="clients", column_id="Phone", col_type="Text"  # lowercase
         )
 
         # Should call with corrected table name
@@ -86,9 +90,7 @@ class TestAddTableColumnCaseInsensitive:
     async def test_uppercase_table_name(self, grist_service, mock_grist_client):
         """Test adding column to uppercase table name."""
         result = await grist_service.add_table_column(
-            table_id="CLIENTS",  # uppercase
-            column_id="Phone",
-            col_type="Text"
+            table_id="CLIENTS", column_id="Phone", col_type="Text"  # uppercase
         )
 
         # Should call with corrected table name
@@ -105,21 +107,19 @@ class TestUpdateTableColumnCaseInsensitive:
         """Test updating with lowercase table and column names."""
         result = await grist_service.update_table_column(
             table_id="clients",  # lowercase
-            column_id="nom",     # lowercase
-            label="Full Name"
+            column_id="nom",  # lowercase
+            label="Full Name",
         )
 
         # Should call with corrected names
         call_args = mock_grist_client.update_column.call_args
         assert call_args[0][0] == "Clients"  # Table corrected
-        assert call_args[0][1] == "Nom"      # Column corrected
+        assert call_args[0][1] == "Nom"  # Column corrected
 
     async def test_mixed_case_names(self, grist_service, mock_grist_client):
         """Test updating with mixed case names."""
         result = await grist_service.update_table_column(
-            table_id="cLiEnTs",
-            column_id="eMAIL",
-            label="Email Address"
+            table_id="cLiEnTs", column_id="eMAIL", label="Email Address"
         )
 
         call_args = mock_grist_client.update_column.call_args
@@ -135,8 +135,7 @@ class TestRemoveTableColumnCaseInsensitive:
     async def test_lowercase_column_removal(self, grist_service, mock_grist_client):
         """Test removing column with lowercase name."""
         result = await grist_service.remove_table_column(
-            table_id="clients",
-            column_id="nom"
+            table_id="clients", column_id="nom"
         )
 
         # Should call with corrected names
@@ -147,8 +146,7 @@ class TestRemoveTableColumnCaseInsensitive:
     async def test_uppercase_column_removal(self, grist_service, mock_grist_client):
         """Test removing column with uppercase name."""
         result = await grist_service.remove_table_column(
-            table_id="CLIENTS",
-            column_id="EMAIL"
+            table_id="CLIENTS", column_id="EMAIL"
         )
 
         call_args = mock_grist_client.delete_column.call_args
@@ -163,10 +161,7 @@ class TestGetSampleRecordsCaseInsensitive:
 
     async def test_lowercase_table_name(self, grist_service, mock_grist_client):
         """Test getting samples from lowercase table name."""
-        result = await grist_service.get_sample_records(
-            table_id="clients",
-            limit=5
-        )
+        result = await grist_service.get_sample_records(table_id="clients", limit=5)
 
         # Should call with corrected table name
         mock_grist_client.get_records.assert_called_once()
@@ -197,8 +192,14 @@ class TestAddRecordsCaseInsensitive:
 
         # Check field names corrected in records
         formatted_records = call_args[0][1]
-        assert formatted_records[0]["fields"] == {"Nom": "Jean", "Email": "jean@example.com"}
-        assert formatted_records[1]["fields"] == {"Nom": "Marie", "Email": "marie@example.com"}
+        assert formatted_records[0]["fields"] == {
+            "Nom": "Jean",
+            "Email": "jean@example.com",
+        }
+        assert formatted_records[1]["fields"] == {
+            "Nom": "Marie",
+            "Email": "marie@example.com",
+        }
 
     async def test_mixed_case_field_names(self, grist_service, mock_grist_client):
         """Test adding records with mixed case field names."""
@@ -212,7 +213,10 @@ class TestAddRecordsCaseInsensitive:
         formatted_records = call_args[0][1]
 
         # Both should be corrected to proper case
-        assert formatted_records[0]["fields"] == {"Nom": "Jean", "Email": "jean@example.com"}
+        assert formatted_records[0]["fields"] == {
+            "Nom": "Jean",
+            "Email": "jean@example.com",
+        }
 
     async def test_exact_match_not_modified(self, grist_service, mock_grist_client):
         """Test that exact match field names are not modified."""
@@ -226,7 +230,10 @@ class TestAddRecordsCaseInsensitive:
         formatted_records = call_args[0][1]
 
         # Should remain unchanged
-        assert formatted_records[0]["fields"] == {"Nom": "Jean", "Email": "jean@example.com"}
+        assert formatted_records[0]["fields"] == {
+            "Nom": "Jean",
+            "Email": "jean@example.com",
+        }
 
 
 @pytest.mark.integration
@@ -279,14 +286,16 @@ class TestCaseInsensitiveRegression:
         """Test that exact matches still work after case-insensitive changes."""
         # This should work exactly as before
         result = await grist_service.add_records(
-            "Clients",
-            [{"Nom": "Jean", "Email": "jean@example.com"}]
+            "Clients", [{"Nom": "Jean", "Email": "jean@example.com"}]
         )
 
         call_args = mock_grist_client.add_records.call_args
         assert call_args[0][0] == "Clients"
         formatted_records = call_args[0][1]
-        assert formatted_records[0]["fields"] == {"Nom": "Jean", "Email": "jean@example.com"}
+        assert formatted_records[0]["fields"] == {
+            "Nom": "Jean",
+            "Email": "jean@example.com",
+        }
 
     async def test_performance_no_degradation(self, grist_service, mock_grist_client):
         """Test that performance doesn't degrade with caching."""

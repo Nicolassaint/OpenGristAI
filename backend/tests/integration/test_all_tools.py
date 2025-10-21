@@ -65,9 +65,7 @@ class TestAllToolsRealAPI:
         return {
             "api_key": api_key,
             "document_id": os.getenv("GRIST_DOCUMENT_ID", "test-document"),
-            "base_url": os.getenv(
-                "GRIST_BASE_URL", "https://docs.getgrist.com"
-            ),
+            "base_url": os.getenv("GRIST_BASE_URL", "https://docs.getgrist.com"),
         }
 
     @pytest.fixture
@@ -101,7 +99,9 @@ class TestAllToolsRealAPI:
 
         table_id = tables[0]["id"]
         # Use the service directly for query
-        result = await real_grist_service.query_document(f"SELECT * FROM {table_id} LIMIT 3")
+        result = await real_grist_service.query_document(
+            f"SELECT * FROM {table_id} LIMIT 3"
+        )
         assert isinstance(result, list)
 
     async def test_real_full_workflow(self, real_grist_service):
@@ -116,17 +116,14 @@ class TestAllToolsRealAPI:
             [
                 {"id": "TestName", "fields": {"type": "Text", "label": "Name"}},
                 {"id": "TestAge", "fields": {"type": "Int", "label": "Age"}},
-            ]
+            ],
         )
         assert table_result["table_id"] == self.TEST_TABLE_NAME
 
         try:
             # 2. Add column using service directly
             column_result = await real_grist_service.add_table_column(
-                self.TEST_TABLE_NAME,
-                "TestEmail",
-                "Text",
-                "Email Address"
+                self.TEST_TABLE_NAME, "TestEmail", "Text", "Email Address"
             )
             assert "column_id" in column_result
 
@@ -136,16 +133,14 @@ class TestAllToolsRealAPI:
                 [
                     {"TestName": "Alice", "TestAge": 30},
                     {"TestName": "Bob", "TestAge": 25},
-                ]
+                ],
             )
             assert add_result["count"] == 2
             record_ids = add_result["record_ids"]
 
             # 4. Update record using service directly
             update_result = await real_grist_service.update_records(
-                self.TEST_TABLE_NAME,
-                [record_ids[0]],
-                [{"TestAge": 31}]
+                self.TEST_TABLE_NAME, [record_ids[0]], [{"TestAge": 31}]
             )
             assert update_result["updated_count"] == 1
 
@@ -163,9 +158,7 @@ class TestAllToolsRealAPI:
 
             # 7. Update column using service directly
             update_col_result = await real_grist_service.update_table_column(
-                self.TEST_TABLE_NAME,
-                "TestEmail",
-                label="Email (Updated)"
+                self.TEST_TABLE_NAME, "TestEmail", label="Email (Updated)"
             )
             assert update_col_result["updated"] is True
 
@@ -179,8 +172,7 @@ class TestAllToolsRealAPI:
             # 9. Delete column using service directly
             if email_column:
                 delete_col_result = await real_grist_service.remove_table_column(
-                    self.TEST_TABLE_NAME,
-                    email_column["id"]
+                    self.TEST_TABLE_NAME, email_column["id"]
                 )
                 assert delete_col_result["deleted"] is True
 
