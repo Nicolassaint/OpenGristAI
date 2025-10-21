@@ -12,6 +12,10 @@ For integration tests with mocks, see: tests/integration/test_agent_workflows.py
 
 import os
 import pytest
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from app.services.grist_service import GristService
 from app.core.tools import (
@@ -82,22 +86,22 @@ class TestAllToolsRealAPI:
 
     async def test_real_get_tables(self, real_grist_service):
         """Test get_tables with real API."""
-        result = await get_tables.ainvoke({})
+        # Use the service directly instead of relying on global context
+        result = await real_grist_service.get_tables()
         assert isinstance(result, list)
         # Should have at least some tables
         assert len(result) >= 0
 
     async def test_real_query_document(self, real_grist_service):
         """Test query_document with real API."""
-        # Get tables first
-        tables = await get_tables.ainvoke({})
+        # Get tables first using the service directly
+        tables = await real_grist_service.get_tables()
         if not tables:
             pytest.skip("No tables in document")
 
         table_id = tables[0]["id"]
-        result = await query_document.ainvoke(
-            {"query": f"SELECT * FROM {table_id} LIMIT 3"}
-        )
+        # Use the service directly for query
+        result = await real_grist_service.query_document(f"SELECT * FROM {table_id} LIMIT 3")
         assert isinstance(result, list)
 
     async def test_real_full_workflow(self, real_grist_service):
@@ -106,91 +110,77 @@ class TestAllToolsRealAPI:
 
         WARNING: This test creates a table that cannot be automatically deleted.
         """
-        # 1. Create table
-        table_result = await add_table.ainvoke(
-            {
-                "table_id": self.TEST_TABLE_NAME,
-                "columns": [
-                    {"id": "TestName", "fields": {"type": "Text", "label": "Name"}},
-                    {"id": "TestAge", "fields": {"type": "Int", "label": "Age"}},
-                ],
-            }
+        # 1. Create table using service directly
+        table_result = await real_grist_service.add_table(
+            self.TEST_TABLE_NAME,
+            [
+                {"id": "TestName", "fields": {"type": "Text", "label": "Name"}},
+                {"id": "TestAge", "fields": {"type": "Int", "label": "Age"}},
+            ]
         )
         assert table_result["table_id"] == self.TEST_TABLE_NAME
 
         try:
-            # 2. Add column
-            column_result = await add_table_column.ainvoke(
-                {
-                    "table_id": self.TEST_TABLE_NAME,
-                    "column_id": "TestEmail",
-                    "column_type": "Text",
-                    "label": "Email Address",
-                }
+            # 2. Add column using service directly
+            column_result = await real_grist_service.add_table_column(
+                self.TEST_TABLE_NAME,
+                "TestEmail",
+                "Text",
+                "Email Address"
             )
             assert "column_id" in column_result
 
-            # 3. Add records
-            add_result = await add_records.ainvoke(
-                {
-                    "table_id": self.TEST_TABLE_NAME,
-                    "records": [
-                        {"TestName": "Alice", "TestAge": 30},
-                        {"TestName": "Bob", "TestAge": 25},
-                    ],
-                }
+            # 3. Add records using service directly
+            add_result = await real_grist_service.add_records(
+                self.TEST_TABLE_NAME,
+                [
+                    {"TestName": "Alice", "TestAge": 30},
+                    {"TestName": "Bob", "TestAge": 25},
+                ]
             )
             assert add_result["count"] == 2
             record_ids = add_result["record_ids"]
 
-            # 4. Update record
-            update_result = await update_records.ainvoke(
-                {
-                    "table_id": self.TEST_TABLE_NAME,
-                    "record_ids": [record_ids[0]],
-                    "records": [{"TestAge": 31}],
-                }
+            # 4. Update record using service directly
+            update_result = await real_grist_service.update_records(
+                self.TEST_TABLE_NAME,
+                [record_ids[0]],
+                [{"TestAge": 31}]
             )
             assert update_result["updated_count"] == 1
 
-            # 5. Query data
-            query_result = await query_document.ainvoke(
-                {"query": f"SELECT * FROM {self.TEST_TABLE_NAME}"}
+            # 5. Query data using service directly
+            query_result = await real_grist_service.query_document(
+                f"SELECT * FROM {self.TEST_TABLE_NAME}"
             )
             assert len(query_result) >= 2
 
-            # 6. Delete record
-            delete_result = await remove_records.ainvoke(
-                {"table_id": self.TEST_TABLE_NAME, "record_ids": [record_ids[0]]}
+            # 6. Delete record using service directly
+            delete_result = await real_grist_service.remove_records(
+                self.TEST_TABLE_NAME, [record_ids[0]]
             )
             assert delete_result["deleted_count"] == 1
 
-            # 7. Update column
-            update_col_result = await update_table_column.ainvoke(
-                {
-                    "table_id": self.TEST_TABLE_NAME,
-                    "column_id": "TestEmail",
-                    "label": "Email (Updated)",
-                }
+            # 7. Update column using service directly
+            update_col_result = await real_grist_service.update_table_column(
+                self.TEST_TABLE_NAME,
+                "TestEmail",
+                label="Email (Updated)"
             )
             assert update_col_result["updated"] is True
 
-            # 8. Get columns to find updated column ID
-            columns = await get_table_columns.ainvoke(
-                {"table_id": self.TEST_TABLE_NAME}
-            )
+            # 8. Get columns to find updated column ID using service directly
+            columns = await real_grist_service.get_table_columns(self.TEST_TABLE_NAME)
             email_column = next(
                 (c for c in columns if "Email" in c.get("id", "")), None
             )
             assert email_column is not None
 
-            # 9. Delete column
+            # 9. Delete column using service directly
             if email_column:
-                delete_col_result = await remove_table_column.ainvoke(
-                    {
-                        "table_id": self.TEST_TABLE_NAME,
-                        "column_id": email_column["id"],
-                    }
+                delete_col_result = await real_grist_service.remove_table_column(
+                    self.TEST_TABLE_NAME,
+                    email_column["id"]
                 )
                 assert delete_col_result["deleted"] is True
 

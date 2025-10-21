@@ -8,13 +8,19 @@ import os
 import pytest
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, patch
+from dotenv import load_dotenv
 
 from fastapi.testclient import TestClient
+
+# Load .env file first
+load_dotenv()
 
 # Set test environment before importing app
 os.environ["OPENAI_API_KEY"] = "test-api-key"
 os.environ["ENVIRONMENT"] = "testing"
-os.environ["GRIST_BASE_URL"] = "https://test.grist.com"
+# Only set GRIST_BASE_URL if not already set (for integration tests)
+if "GRIST_BASE_URL" not in os.environ:
+    os.environ["GRIST_BASE_URL"] = "https://test.grist.com"
 
 from app.api.main import app
 from app.models import Settings
