@@ -33,12 +33,27 @@ services:
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
 
+      # LLM Settings (optional)
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.0}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-60}
+      LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-2}
+
       # Grist Configuration (optional)
       GRIST_BASE_URL: ${GRIST_BASE_URL:-https://docs.getgrist.com}
+
+      # Agent Settings (optional)
+      AGENT_MAX_ITERATIONS: ${AGENT_MAX_ITERATIONS:-15}
+      AGENT_VERBOSE: ${AGENT_VERBOSE:-true}
 
       # Application
       ENVIRONMENT: ${ENVIRONMENT:-production}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+      # CORS Configuration
+      # In production, set this to your actual domain(s)
+      # Example: https://your-domain.com,https://grist.numerique.gouv.fr
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8000}
 
     restart: unless-stopped
 

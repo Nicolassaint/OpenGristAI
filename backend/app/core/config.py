@@ -94,19 +94,6 @@ class Settings(BaseSettings):
     - https://your-grist.example.com (self-hosted)
     """
 
-    # ========================================================================
-    # Database Settings (for future use)
-    # ========================================================================
-
-    database_url: Optional[str] = None
-    """PostgreSQL database URL (optional, for conversation history)"""
-
-    # ========================================================================
-    # Redis Settings (for future use)
-    # ========================================================================
-
-    redis_url: Optional[str] = None
-    """Redis URL (optional, for caching and rate limiting)"""
 
     # ========================================================================
     # Agent Settings
@@ -128,8 +115,17 @@ class Settings(BaseSettings):
     jwt_secret: Optional[str] = None
     """JWT secret for token signing (optional)"""
 
-    cors_origins: list[str] = ["*"]
-    """CORS allowed origins (use specific origins in production)"""
+    cors_origins: str = "http://localhost:5173,http://localhost:8000"
+    """
+    CORS allowed origins (comma-separated).
+    Default development origins: http://localhost:5173,http://localhost:8000
+
+    Examples:
+    - Development: http://localhost:5173,http://localhost:8000
+    - Production: https://your-domain.com,https://grist.numerique.gouv.fr
+    - Docker dev: http://localhost:5173,http://backend:8000
+    - Allow all (NOT recommended): *
+    """
 
     # ========================================================================
     # Pydantic Settings Configuration
@@ -187,3 +183,23 @@ def is_development() -> bool:
 def is_production() -> bool:
     """Check if running in production environment."""
     return settings.environment.lower() == "production"
+
+
+def get_cors_origins() -> list[str]:
+    """
+    Get CORS origins as a list.
+
+    Converts the comma-separated string from settings to a list.
+    Handles special case of "*" for allow all origins.
+
+    Returns:
+        List of allowed origins for CORS middleware
+    """
+    origins = settings.cors_origins.strip()
+
+    # If "*", return as single-item list for "allow all"
+    if origins == "*":
+        return ["*"]
+
+    # Split by comma and clean whitespace
+    return [origin.strip() for origin in origins.split(",") if origin.strip()]

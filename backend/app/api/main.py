@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.models import settings
+from app.core.config import get_cors_origins
 from app.api.routes import router
 from app.middleware.error_handler import register_exception_handlers
 
@@ -107,9 +108,13 @@ app = FastAPI(
 # ============================================================================
 
 # CORS middleware
+# Get CORS origins from settings (parsed from comma-separated string)
+cors_origins = get_cors_origins()
+logger.info(f"CORS Origins: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

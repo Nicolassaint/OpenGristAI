@@ -57,6 +57,7 @@ docker run -d \
   -e OPENAI_BASE_URL=https://api.openai.com/v1 \
   -e OPENAI_MODEL=gpt-4o-mini \
   -e GRIST_BASE_URL=https://grist.numerique.gouv.fr \
+  -e CORS_ORIGINS=https://your-domain.com \
   -e LOG_LEVEL=INFO \
   -e ENVIRONMENT=production \
   --restart unless-stopped \
@@ -67,11 +68,26 @@ docker run -d \
 Accédez à http://localhost:8000
 
 **Variables d'environnement** :
-- `OPENAI_API_KEY` - Votre clé API du fournisseur IA (obligatoire)
+
+**Obligatoires :**
+- `OPENAI_API_KEY` - Votre clé API du fournisseur IA
 - `OPENAI_BASE_URL` - URL du serveur API compatible OpenAI (défaut: `https://api.openai.com/v1`)
 - `OPENAI_MODEL` - Modèle à utiliser (défaut: `gpt-4o-mini`)
+- `CORS_ORIGINS` - Origines autorisées pour CORS, séparées par des virgules (défaut dev: `http://localhost:5173,http://localhost:8000`, prod: selon votre domaine)
+
+**Optionnelles :**
 - `GRIST_BASE_URL` - URL de votre instance Grist (défaut: `https://docs.getgrist.com`, DINUM: `https://grist.numerique.gouv.fr`)
 - `LOG_LEVEL` - Niveau de logs (défaut: `INFO`)
+
+**Paramètres LLM avancés (optionnels) :**
+- `LLM_TEMPERATURE` - Créativité du modèle (défaut: `0.0` = déterministe)
+- `LLM_MAX_TOKENS` - Limite de tokens par réponse (défaut: modèle par défaut)
+- `LLM_TIMEOUT` - Timeout des requêtes en secondes (défaut: `60`)
+- `LLM_MAX_RETRIES` - Nombre de tentatives en cas d'échec (défaut: `2`)
+
+**Paramètres Agent (optionnels) :**
+- `AGENT_MAX_ITERATIONS` - Nombre maximum d'appels d'outils (défaut: `15`)
+- `AGENT_VERBOSE` - Logs détaillés de l'agent (défaut: `true`)
 
 ### Installation Locale (Développement)
 
