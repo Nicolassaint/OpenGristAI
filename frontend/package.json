@@ -12,8 +12,8 @@
 		"sveltekit"
 	],
 	"scripts": {
-		"dev": "vite dev",
-		"dev-host": "vite dev --host 0.0.0.0",
+		"dev": "vite dev --port ${FRONTEND_PORT:-5173} --host ${FRONTEND_HOST:-localhost}",
+		"dev-host": "vite dev --port ${FRONTEND_PORT:-5173} --host 0.0.0.0",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",

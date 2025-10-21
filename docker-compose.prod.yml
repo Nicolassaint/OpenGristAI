@@ -26,7 +26,7 @@ services:
     image: nicolassaint/opengristai:latest
     container_name: opengristai
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     environment:
       # OpenAI Configuration (required)
       OPENAI_API_KEY: ${OPENAI_API_KEY}

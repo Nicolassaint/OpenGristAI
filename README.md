@@ -79,6 +79,10 @@ Accédez à http://localhost:8000
 - `GRIST_BASE_URL` - URL de votre instance Grist (défaut: `https://docs.getgrist.com`, DINUM: `https://grist.numerique.gouv.fr`)
 - `LOG_LEVEL` - Niveau de logs (défaut: `INFO`)
 
+**Configuration des ports (optionnels) :**
+- `API_PORT` - Port du serveur backend (défaut: `8000`)
+- `FRONTEND_PORT` - Port du serveur frontend en développement (défaut: `5173`)
+
 **Paramètres LLM avancés (optionnels) :**
 - `LLM_TEMPERATURE` - Créativité du modèle (défaut: `0.0` = déterministe)
 - `LLM_MAX_TOKENS` - Limite de tokens par réponse (défaut: modèle par défaut)
