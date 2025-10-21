@@ -94,12 +94,14 @@ class GristAgent:
         set_grist_service(self.grist_service)
 
         # Create confirmation handler
-        from app.core.confirmation import ConfirmationHandler
+        from app.core.confirmation import ConfirmationHandler, get_confirmation_service
 
         self.confirmation_handler = ConfirmationHandler(
             grist_service=self.grist_service,
             enabled=enable_confirmations,
         )
+        # Use the global confirmation service to ensure consistency with API routes
+        self.confirmation_handler.confirmation_service = get_confirmation_service()
 
         # Initialize LLM
         self.llm = get_llm()
