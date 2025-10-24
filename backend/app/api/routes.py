@@ -343,20 +343,3 @@ async def confirm_operation(
             status=ConfirmationStatus.APPROVED,
             message=f"Operation failed: {str(e)}",
         )
-
-
-# TODO: Add more endpoints
-# - POST /chat/stream - Streaming responses
-# - GET /tables - Get all tables
-# - GET /tables/{table_id}/columns - Get table columns
-# - POST /execute - Execute operations without LLM (direct API)
-
-# TODO: Add authentication
-# - API key validation
-# - JWT token support
-# - Rate limiting per user
-
-# TODO: Add request validation
-# - Validate document_id exists
-# - Validate page_id exists
-# - Sanitize user inputs

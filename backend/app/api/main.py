@@ -78,18 +78,10 @@ async def lifespan(app: FastAPI):
     logger.info(f"LLM Model: {settings.openai_model}")
     logger.info(f"Grist Base URL: {settings.grist_base_url}")
 
-    # TODO: Initialize database connections
-    # TODO: Initialize Redis connection
-    # TODO: Warm up LLM (optional pre-load)
-
     yield
 
     # Shutdown
     logger.info("🛑 Shutting down Grist AI Assistant API...")
-
-    # TODO: Close database connections
-    # TODO: Close Redis connection
-    # TODO: Cleanup resources
 
 
 # ============================================================================
@@ -119,12 +111,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# TODO: Add more middleware
-# - Request ID middleware (for tracing)
-# - Rate limiting middleware
-# - Authentication middleware
-# - Error handling middleware
 
 # ============================================================================
 # Routes
@@ -164,14 +150,8 @@ else:
 
 
 # ============================================================================
-# Error Handlers
+# Main
 # ============================================================================
-
-# TODO: Add custom error handlers
-# - 404 handler with helpful messages
-# - 500 handler with error tracking
-# - Validation error handler with detailed feedback
-
 
 if __name__ == "__main__":
     import uvicorn

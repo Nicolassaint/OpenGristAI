@@ -323,15 +323,3 @@ class ValidationService:
         self._tables_cache = None
         self._columns_cache = {}
         logger.debug("Validation cache cleared")
-
-
-# TODO: Add more validation
-# - Validate that referenced records exist
-# - Validate formula syntax
-# - Validate widget options
-# - Validate access rules
-
-# TODO: Add smart suggestions
-# - Fuzzy match table/column names
-# - Suggest similar choices for typos
-# - Auto-convert compatible types (string -> int, etc.)

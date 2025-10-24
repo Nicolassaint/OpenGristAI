@@ -178,12 +178,6 @@ def get_llm(config: Optional[LLMConfig] = None) -> BaseChatModel:
         # Or override specific settings
         custom_config = LLMConfig(temperature=0.7)
         llm = get_llm(custom_config)
-
-    TODO:
-        - Add support for streaming responses
-        - Implement token usage tracking
-        - Add retry logic with exponential backoff
-        - Consider caching for repeated queries
     """
     if config is None:
         config = LLMConfig()
@@ -210,21 +204,3 @@ def get_llm(config: Optional[LLMConfig] = None) -> BaseChatModel:
     llm = ChatOpenAI(**kwargs)
 
     return llm
-
-
-# TODO: Add LLM monitoring/observability
-# - Track token usage per request
-# - Track latency metrics
-# - Log all LLM calls with context
-# - Integrate with LangSmith or LangFuse for tracing
-
-# TODO: Add error handling
-# - Handle rate limiting (429 errors)
-# - Handle context length errors
-# - Handle API timeouts gracefully
-# - Implement circuit breaker pattern
-
-# TODO: Add cost optimization
-# - Implement prompt caching where appropriate
-# - Consider using cheaper models for simple queries
-# - Add token usage warnings for expensive calls

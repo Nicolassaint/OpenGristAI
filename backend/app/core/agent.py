@@ -187,11 +187,6 @@ class GristAgent:
                 - success: Whether the execution was successful
                 - error: Error message if failed
                 - metrics: Execution metrics (iterations, tool calls, failures)
-
-        TODO:
-            - Add error recovery for failed tool calls
-            - Implement confirmation workflow for destructive operations
-            - Add conversation context tracking
         """
         try:
             # Validate function calling on first run if requested
@@ -538,25 +533,3 @@ class GristAgent:
             current_table_name=self.current_table_name,
         )
         logger.info(f"Context updated to page '{page_name}' (id: {page_id})")
-
-
-# TODO: Implement conversation memory
-# - Use LangChain's ConversationBufferMemory or similar
-# - Store conversation history in Redis
-# - Implement context window management (summarization for long conversations)
-
-# TODO: Add streaming support
-# - Stream agent responses as they're generated
-# - Stream tool call results
-# - Implement server-sent events (SSE) in FastAPI
-
-# TODO: Implement confirmation workflow
-# - Detect destructive operations (delete, update multiple records)
-# - Ask user for confirmation before executing
-# - Show preview of what will be changed
-
-# TODO: Add agent monitoring
-# - Track agent execution time
-# - Log all tool calls with inputs/outputs
-# - Track success/failure rates
-# - Implement alerting for repeated failures
